@@ -8,6 +8,7 @@
 	import Swatch from '$lib/components/ui/Swatch.svelte';
 	import PriorityBadge from '$lib/components/shared/PriorityBadge.svelte';
 	import ActivityList from '$lib/features/activities/components/ActivityList.svelte';
+	import MilestoneList from '$lib/features/milestones/components/MilestoneList.svelte';
 	import NoteList from '$lib/features/notes/components/NoteList.svelte';
 	import ProjectFocusCard from '$lib/features/projects/components/ProjectFocusCard.svelte';
 	import ProjectStatusBadge from '$lib/features/projects/components/ProjectStatusBadge.svelte';
@@ -19,6 +20,7 @@
 	let { data, form } = $props();
 	const project = $derived(data.project);
 	const today = todayISO();
+	const milestonesDone = $derived(data.milestones.filter((m) => m.status === 'completed').length);
 </script>
 
 <svelte:head>
@@ -64,6 +66,22 @@
 <div class="layout">
 	<div class="layout__main">
 		<ProjectFocusCard {project} errors={form?.focusErrors} open={!!form?.focusErrors} />
+
+		<Card>
+			<Section
+				title="Milestones"
+				meta={data.milestones.length
+					? `${milestonesDone}/${data.milestones.length} completed`
+					: undefined}
+			>
+				<MilestoneList
+					milestones={data.milestones}
+					values={form?.milestoneValues}
+					errors={form?.milestoneErrors}
+					open={!!form?.milestoneErrors}
+				/>
+			</Section>
+		</Card>
 
 		<Card>
 			<Section title="Recent activity">

@@ -1,6 +1,17 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { listRecentActivity } from '$lib/features/activities/activity.service';
+import {
+	milestoneIdSchema,
+	milestoneSchema,
+	milestoneStatusSchema
+} from '$lib/features/milestones/milestone.schema';
+import {
+	createMilestone,
+	deleteMilestone,
+	listMilestonesForProject,
+	setMilestoneStatus
+} from '$lib/features/milestones/milestone.service';
 import { noteIdSchema, noteSchema } from '$lib/features/notes/note.schema';
 import { createNote, deleteNote, listNotesForProject } from '$lib/features/notes/note.service';
 import { projectFocusSchema, projectStatusSchema } from '$lib/features/projects/project.schema';
@@ -21,12 +32,13 @@ import { parseForm } from '$lib/server/forms';
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = requireUser(locals);
 	const project = await requireProject(user.id, params.id);
-	const [notes, resources, activity] = await Promise.all([
+	const [milestones, notes, resources, activity] = await Promise.all([
+		listMilestonesForProject(user.id, project.id),
 		listNotesForProject(user.id, project.id),
 		listResourcesForProject(user.id, project.id),
 		listRecentActivity(user.id, { projectId: project.id, limit: 12 })
 	]);
-	return { project, notes, resources, activity };
+	return { project, milestones, notes, resources, activity };
 };
 
 export const actions: Actions = {
@@ -44,6 +56,32 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { focusErrors: parsed.errors });
 		await updateProjectFocus(user.id, params.id, parsed.data);
 		return { focusUpdated: true };
+	},
+
+	createMilestone: async ({ request, locals, params }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), milestoneSchema);
+		if (!parsed.ok) {
+			return fail(400, { milestoneErrors: parsed.errors, milestoneValues: parsed.values });
+		}
+		await createMilestone(user.id, params.id, parsed.data);
+		return { milestoneCreated: true };
+	},
+
+	setMilestoneStatus: async ({ request, locals }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), milestoneStatusSchema);
+		if (!parsed.ok) return fail(400, { milestoneErrors: parsed.errors });
+		await setMilestoneStatus(user.id, parsed.data.milestoneId, parsed.data.status);
+		return { milestoneUpdated: true };
+	},
+
+	deleteMilestone: async ({ request, locals }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), milestoneIdSchema);
+		if (!parsed.ok) return fail(400, { milestoneErrors: parsed.errors });
+		await deleteMilestone(user.id, parsed.data.milestoneId);
+		return { milestoneDeleted: true };
 	},
 
 	createNote: async ({ request, locals, params }) => {
