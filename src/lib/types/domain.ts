@@ -127,3 +127,25 @@ export const IN_FLIGHT_PROJECT_STATUSES: readonly ProjectStatus[] = [
 
 /** Task statuses that still need work. */
 export const OPEN_TASK_STATUSES: readonly TaskStatus[] = ['todo', 'in_progress', 'blocked'];
+
+/** Accent colours a company can be tagged with (mapped to tokens in the UI). */
+export const COMPANY_ACCENTS = [
+	'blue',
+	'green',
+	'orange',
+	'purple',
+	'teal',
+	'pink',
+	'gray'
+] as const;
+export type CompanyAccent = (typeof COMPANY_ACCENTS)[number];
+
+export const COMPANY_ACCENT_LABELS: Record<CompanyAccent, string> = {
+	blue: 'Blue',
+	green: 'Green',
+	orange: 'Orange',
+	purple: 'Purple',
+	teal: 'Teal',
+	pink: 'Pink',
+	gray: 'Gray'
+};
