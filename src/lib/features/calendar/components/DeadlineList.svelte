@@ -43,9 +43,9 @@
 					<span class="deadline__body">
 						<span class="deadline__title">{item.title}</span>
 						<span class="deadline__meta">
-							{item.kind}{#if item.projectName}
-								· {item.projectName}{/if}{#if item.time}
-								· {item.time}{/if}
+							<span class="deadline__kind">{item.kind}</span>
+							{#if item.projectName}<span> · {item.projectName}</span>{/if}
+							{#if item.time}<span> · {item.time}</span>{/if}
 						</span>
 					</span>
 				</a>
