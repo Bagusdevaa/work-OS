@@ -32,19 +32,19 @@ MVP — Foundation
 - [x] Dashboard (stats, "Focus now" recommendations with reasons, needs-attention projects, active projects, upcoming deadlines, recent activity; recommendation/bucket/deadline logic tested)
 - [x] My Work (Overdue / Due today / This week / Blocked / Next up sections; context filter by company, project or personal; `?view=` deep links from dashboard; tested)
 - [x] Inbox (quick capture with automatic kind detection, convert to task / note / project, dismiss and restore, processed history; classification tested)
+- [x] Calendar (month grid + agenda of task, milestone and project deadlines plus events; add/remove events; grid helpers tested)
 
 ---
 
 ## In Progress
 
-Calendar (month grid + agenda of task, milestone, project deadlines and events).
+Weekly Review (computed weekly summary + editable wins/problems/lessons/priorities).
 
 ---
 
 ## Next
 
-1. Calendar
-2. Weekly Review
+1. Weekly Review
 
 ---
 
@@ -73,4 +73,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — inbox complete (Task 12 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — calendar complete (Task 13 of the MVP plan in `docs/superpowers/plans/`).
