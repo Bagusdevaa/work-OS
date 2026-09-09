@@ -2,7 +2,7 @@
 
 ## Current Milestone
 
-MVP — Foundation
+MVP — Foundation (complete; awaiting merge of `feat/mvp-foundation` into `main`)
 
 ---
 
@@ -39,20 +39,22 @@ MVP — Foundation
 
 ## In Progress
 
-MVP wrap-up: production build validation, responsive sweep, documentation sync.
+Nothing. MVP verified: `bun run check`, `bun run lint`, `bun test` (133 tests), `bun run build` all pass; adapter-node server smoke-tested; every page checked at 1440×900, 1280×800, 1024×768, 768×1024 and 390×844 with no horizontal overflow.
 
 ---
 
 ## Next
 
-1. MVP verification (build, responsive sweep)
-2. Post-MVP: see `docs/superpowers/plans/` for candidate follow-ups
+1. Deva: review commits on `feat/mvp-foundation`, merge into `main`.
+2. Point `.env` at the real Supabase project and run `bun run db:migrate` there.
+3. Post-MVP candidates: password reset / magic link, task reordering, project archive view, richer calendar (week view), AI features per AGENTS.md §20 once workflows are proven.
 
 ---
 
 ## Known Issues
 
-None.
+- Email confirmation on signup is disabled in the local Supabase config; hosted Supabase enables it by default (the signup page already handles the "check your email" state).
+- `supabase/config.toml` is committed as generated; adjust `site_url`/`additional_redirect_urls` for the hosted project.
 
 ---
 
@@ -75,4 +77,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — weekly review complete (Task 14 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — MVP milestone complete and verified (all 14 tasks of the plan in `docs/superpowers/plans/2026-09-09-mvp-foundation.md`).

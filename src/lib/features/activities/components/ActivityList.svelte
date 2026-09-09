@@ -68,6 +68,7 @@
 	.activity__summary {
 		color: var(--color-text);
 		font-size: var(--text-body-2);
+		overflow-wrap: anywhere;
 	}
 	.activity__time {
 		font-size: var(--text-xs);

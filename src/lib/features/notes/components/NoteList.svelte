@@ -114,11 +114,14 @@
 	.note__title {
 		font-size: var(--text-body-2);
 		font-weight: var(--weight-semibold);
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.note__content {
 		font-size: var(--text-small);
 		color: var(--color-text-secondary);
 		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 	.note__time {
 		font-size: var(--text-xs);

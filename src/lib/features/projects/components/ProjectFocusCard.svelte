@@ -128,6 +128,7 @@
 	.focus__item dd {
 		margin: 0;
 		font-size: var(--text-body-2);
+		overflow-wrap: anywhere;
 	}
 	.focus__item--next dd {
 		font-weight: var(--weight-medium);

@@ -160,6 +160,8 @@
 	.list__item a {
 		color: var(--color-text);
 		font-weight: var(--weight-medium);
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.muted {
 		font-size: var(--text-small);

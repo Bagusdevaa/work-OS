@@ -193,6 +193,8 @@
 	}
 	.milestone__name {
 		font-weight: var(--weight-medium);
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.milestone--done .milestone__name {
 		color: var(--color-text-muted);
