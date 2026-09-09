@@ -19,33 +19,31 @@ MVP — Foundation
 - [x] Design tokens + global styles (`src/lib/styles/tokens.css`, `global.css`)
 - [x] Shared domain vocabulary (`src/lib/types/domain.ts`)
 - [x] Date utilities with tests (`src/lib/utils/dates.ts`)
-- [ ] Database schema created
-- [ ] Authentication implemented
+- [x] Database schema created (12 tables, enums, relations; migration `drizzle/0000_initial_schema.sql`)
+- [x] Authentication implemented (Supabase Auth via @supabase/ssr, server-side only; login, signup, callback, signout; route guard in hooks)
 - [ ] Application shell implemented
 
 ---
 
 ## In Progress
 
-Database foundation (schema + initial migration).
+Application shell (responsive sidebar, top bar, page primitives).
 
 ---
 
 ## Next
 
-1. Database foundation
-2. Authentication
-3. Application shell
-4. Companies
-5. Projects
-6. Milestones
-7. Tasks
-8. Dashboard
-9. Project health
-10. My Work
-11. Inbox
-12. Calendar
-13. Weekly Review
+1. Application shell
+2. Companies
+3. Projects
+4. Milestones
+5. Tasks
+6. Dashboard
+7. Project health
+8. My Work
+9. Inbox
+10. Calendar
+11. Weekly Review
 
 ---
 
@@ -74,4 +72,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — project foundation complete (Task 1 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — database foundation and authentication complete (Tasks 2–3 of the MVP plan in `docs/superpowers/plans/`).

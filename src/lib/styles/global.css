@@ -126,3 +126,51 @@ ol {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* Form controls (shared by Input, Textarea, Select) */
+.control {
+	width: 100%;
+	min-height: 42px;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-sm);
+	background: var(--color-surface);
+	color: var(--color-text);
+	font-size: var(--text-body-2);
+	transition:
+		border-color var(--duration-fast) var(--ease-standard),
+		box-shadow var(--duration-fast) var(--ease-standard);
+}
+.control::placeholder {
+	color: var(--color-text-placeholder);
+}
+.control:hover {
+	border-color: var(--color-primary-300);
+}
+.control:focus {
+	outline: none;
+	border-color: var(--color-primary-500);
+	box-shadow: var(--focus-ring);
+}
+.control:disabled {
+	background: var(--color-surface-muted);
+	color: var(--color-text-muted);
+	cursor: not-allowed;
+}
+.control--invalid {
+	border-color: var(--color-danger);
+}
+.control--invalid:focus {
+	box-shadow: 0 0 0 3px var(--color-danger-bg);
+}
+.control--textarea {
+	resize: vertical;
+	line-height: var(--leading-normal);
+}
+.control--select {
+	appearance: none;
+	padding-right: var(--space-8);
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237b86a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right var(--space-3) center;
+}
