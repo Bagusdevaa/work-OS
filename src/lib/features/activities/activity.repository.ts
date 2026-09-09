@@ -35,3 +35,14 @@ export async function findActivities(
 		.orderBy(desc(activities.createdAt))
 		.limit(filter.limit ?? 20);
 }
+
+export function countActivitiesBetween(userId: string, from: Date, to: Date): Promise<number> {
+	return db.$count(
+		activities,
+		and(
+			eq(activities.userId, userId),
+			gte(activities.createdAt, from),
+			lt(activities.createdAt, to)
+		)
+	);
+}

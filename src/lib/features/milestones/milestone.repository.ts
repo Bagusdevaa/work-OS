@@ -1,4 +1,4 @@
-import { and, asc, eq, getTableColumns, inArray, isNotNull, ne } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, gte, inArray, isNotNull, lt, ne } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
 import { milestones, projects, tasks } from '$lib/server/db/schema';
 import { IN_FLIGHT_PROJECT_STATUSES, type MilestoneStatus } from '$lib/types/domain';
@@ -109,4 +109,41 @@ export function findMilestoneDeadlines(userId: string): Promise<MilestoneDeadlin
 			)
 		)
 		.orderBy(asc(milestones.dueDate));
+}
+
+export interface CompletedMilestone {
+	id: string;
+	name: string;
+	status: MilestoneStatus;
+	completedAt: Date | null;
+	projectId: string;
+	projectName: string;
+}
+
+/** Milestones completed within [from, to) — for reviews. */
+export function findMilestonesCompletedBetween(
+	userId: string,
+	from: Date,
+	to: Date
+): Promise<CompletedMilestone[]> {
+	return db
+		.select({
+			id: milestones.id,
+			name: milestones.name,
+			status: milestones.status,
+			completedAt: milestones.completedAt,
+			projectId: milestones.projectId,
+			projectName: projects.name
+		})
+		.from(milestones)
+		.innerJoin(projects, eq(milestones.projectId, projects.id))
+		.where(
+			and(
+				eq(milestones.userId, userId),
+				eq(milestones.status, 'completed'),
+				gte(milestones.completedAt, from),
+				lt(milestones.completedAt, to)
+			)
+		)
+		.orderBy(asc(milestones.completedAt));
 }

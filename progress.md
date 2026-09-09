@@ -33,18 +33,20 @@ MVP — Foundation
 - [x] My Work (Overdue / Due today / This week / Blocked / Next up sections; context filter by company, project or personal; `?view=` deep links from dashboard; tested)
 - [x] Inbox (quick capture with automatic kind detection, convert to task / note / project, dismiss and restore, processed history; classification tested)
 - [x] Calendar (month grid + agenda of task, milestone and project deadlines plus events; add/remove events; grid helpers tested)
+- [x] Weekly Review (computed summary: completed tasks/milestones, projects by health, overdue, next week; editable wins/problems/lessons/priorities saved per week with a snapshot; tested)
 
 ---
 
 ## In Progress
 
-Weekly Review (computed weekly summary + editable wins/problems/lessons/priorities).
+MVP wrap-up: production build validation, responsive sweep, documentation sync.
 
 ---
 
 ## Next
 
-1. Weekly Review
+1. MVP verification (build, responsive sweep)
+2. Post-MVP: see `docs/superpowers/plans/` for candidate follow-ups
 
 ---
 
@@ -73,4 +75,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — calendar complete (Task 13 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — weekly review complete (Task 14 of the MVP plan in `docs/superpowers/plans/`).

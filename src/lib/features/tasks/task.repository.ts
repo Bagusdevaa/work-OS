@@ -1,4 +1,4 @@
-import { and, asc, eq, getTableColumns, inArray, isNotNull, lte } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, gte, inArray, isNotNull, lt, lte } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
 import { companies, milestones, projects, tasks } from '$lib/server/db/schema';
 import type { ProjectStatus, TaskStatus } from '$lib/types/domain';
@@ -104,4 +104,22 @@ export function findTaskSignals(userId: string, projectIds: string[]): Promise<T
 		.select({ projectId: tasks.projectId, status: tasks.status, dueDate: tasks.dueDate })
 		.from(tasks)
 		.where(and(eq(tasks.userId, userId), inArray(tasks.projectId, projectIds)));
+}
+
+/** Tasks completed within [from, to), with project names — for reviews. */
+export function findTasksCompletedBetween(
+	userId: string,
+	from: Date,
+	to: Date
+): Promise<TaskWithContext[]> {
+	return withContext()
+		.where(
+			and(
+				eq(tasks.userId, userId),
+				eq(tasks.status, 'done'),
+				gte(tasks.completedAt, from),
+				lt(tasks.completedAt, to)
+			)
+		)
+		.orderBy(asc(tasks.completedAt));
 }
