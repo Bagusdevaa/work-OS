@@ -1,5 +1,9 @@
 <script lang="ts">
-	let { children } = $props();
+	import AppShell from '$lib/components/layout/AppShell.svelte';
+
+	let { data, children } = $props();
 </script>
 
-{@render children()}
+<AppShell user={data.user}>
+	{@render children()}
+</AppShell>
