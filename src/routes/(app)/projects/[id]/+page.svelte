@@ -14,6 +14,7 @@
 	import TaskQuickAdd from '$lib/features/tasks/components/TaskQuickAdd.svelte';
 	import { calculateTaskProgress } from '$lib/features/tasks/task.utils';
 	import NoteList from '$lib/features/notes/components/NoteList.svelte';
+	import HealthBadge from '$lib/features/projects/components/HealthBadge.svelte';
 	import ProjectFocusCard from '$lib/features/projects/components/ProjectFocusCard.svelte';
 	import ProjectStatusBadge from '$lib/features/projects/components/ProjectStatusBadge.svelte';
 	import ProjectStatusSelect from '$lib/features/projects/components/ProjectStatusSelect.svelte';
@@ -27,6 +28,7 @@
 	const milestonesDone = $derived(data.milestones.filter((m) => m.status === 'completed').length);
 	const progress = $derived(calculateTaskProgress(data.tasks));
 	const openTasks = $derived(data.tasks.filter((task) => task.status !== 'done').length);
+	const inFlight = $derived(['planning', 'active', 'blocked'].includes(project.status));
 </script>
 
 <svelte:head>
@@ -55,6 +57,9 @@
 </PageHeader>
 
 <div class="meta">
+	{#if inFlight}
+		<HealthBadge state={data.health.state} size="md" />
+	{/if}
 	<ProjectStatusBadge status={project.status} size="md" />
 	<PriorityBadge priority={project.priority} size="md" />
 	<Badge tone="neutral">{PROJECT_TYPE_LABELS[project.type]}</Badge>
@@ -64,6 +69,13 @@
 		Last activity {describeTimeAgo(project.lastActivityAt).toLowerCase()}
 	</span>
 </div>
+
+{#if inFlight}
+	<p class="health-reasons">
+		<span class="health-reasons__label">Why:</span>
+		{data.health.reasons.join(' · ')}
+	</p>
+{/if}
 
 {#if progress.total > 0}
 	<div class="progress-row">
@@ -189,6 +201,16 @@
 	}
 	.meta__text {
 		font-size: var(--text-small);
+		color: var(--color-text-muted);
+	}
+	.health-reasons {
+		font-size: var(--text-small);
+		color: var(--color-text-secondary);
+		margin-top: calc(-1 * var(--space-6));
+		margin-bottom: var(--space-6);
+	}
+	.health-reasons__label {
+		font-weight: var(--weight-semibold);
 		color: var(--color-text-muted);
 	}
 	.progress-row {

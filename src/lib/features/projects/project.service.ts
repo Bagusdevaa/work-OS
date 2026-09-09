@@ -2,15 +2,46 @@ import { error } from '@sveltejs/kit';
 import { logActivity, type LogActivityInput } from '$lib/features/activities/activity.service';
 import { findAreaById } from '$lib/features/areas/area.repository';
 import { findCompanyById } from '$lib/features/companies/company.repository';
+import { findMilestoneSignals } from '$lib/features/milestones/milestone.repository';
+import { findTaskSignals } from '$lib/features/tasks/task.repository';
 import type { FormErrors } from '$lib/server/forms';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '$lib/types/domain';
 import * as repo from './project.repository';
 import type { ProjectFocusInput, ProjectInput } from './project.schema';
-import type { Project, ProjectWithContext } from './project.types';
+import { calculateProjectHealth } from './project-health';
+import type { Project, ProjectWithContext, ProjectWithHealth } from './project.types';
 import { sortProjectsForList, statusTransitionPatch } from './project.utils';
 
-export async function listProjects(userId: string, filter?: repo.ProjectFilter) {
-	return sortProjectsForList(await repo.findProjects(userId, filter));
+export async function listProjects(
+	userId: string,
+	filter?: repo.ProjectFilter
+): Promise<ProjectWithHealth[]> {
+	const projects = sortProjectsForList(await repo.findProjects(userId, filter));
+	return attachHealth(userId, projects);
+}
+
+/** Loads task and milestone signals for the given projects and computes each one's health. */
+export async function attachHealth<T extends ProjectWithContext>(
+	userId: string,
+	projects: T[],
+	now = new Date()
+): Promise<Array<T & { health: ProjectWithHealth['health'] }>> {
+	const ids = projects.map((project) => project.id);
+	const [taskSignals, milestoneSignals] = await Promise.all([
+		findTaskSignals(userId, ids),
+		findMilestoneSignals(userId, ids)
+	]);
+	return projects.map((project) => ({
+		...project,
+		health: calculateProjectHealth(
+			{
+				...project,
+				tasks: taskSignals.filter((t) => t.projectId === project.id),
+				milestones: milestoneSignals.filter((m) => m.projectId === project.id)
+			},
+			now
+		)
+	}));
 }
 
 export async function requireProject(userId: string, id: string): Promise<ProjectWithContext> {

@@ -9,7 +9,7 @@ import {
 	setCompanyStatus
 } from '$lib/features/companies/company.service';
 import { summarizeProjectStatuses } from '$lib/features/companies/company.utils';
-import { findProjectsByCompany } from '$lib/features/projects/project.repository';
+import { listProjects } from '$lib/features/projects/project.service';
 import { requireUser } from '$lib/server/auth/session';
 import { parseForm } from '$lib/server/forms';
 
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const company = await requireCompany(user.id, params.id);
 	const [areas, projects, statusCounts, activity] = await Promise.all([
 		listAreasForCompany(user.id, company.id),
-		findProjectsByCompany(user.id, company.id),
+		listProjects(user.id, { companyId: company.id }),
 		getProjectStatusCounts(user.id, company.id),
 		listRecentActivity(user.id, { companyId: company.id, limit: 10 })
 	]);

@@ -1,14 +1,17 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { describeTimeAgo } from '$lib/utils/dates';
+	import type { ProjectHealth } from '../project-health';
 	import type { Project } from '../project.types';
+	import HealthBadge from './HealthBadge.svelte';
 	import ProjectStatusBadge from './ProjectStatusBadge.svelte';
 
 	interface Props {
-		project: Project;
+		project: Project & { health?: ProjectHealth };
 	}
 
 	let { project }: Props = $props();
+	const inFlight = $derived(['planning', 'active', 'blocked'].includes(project.status));
 </script>
 
 <a href="/projects/{project.id}" class="row">
@@ -19,6 +22,9 @@
 		{/if}
 	</div>
 	<div class="row__meta">
+		{#if project.health && inFlight}
+			<HealthBadge state={project.health.state} reasons={project.health.reasons} />
+		{/if}
 		<ProjectStatusBadge status={project.status} />
 		<span class="row__time">{describeTimeAgo(project.lastActivityAt)}</span>
 		<ChevronRight size={16} class="row__chevron" aria-hidden="true" />

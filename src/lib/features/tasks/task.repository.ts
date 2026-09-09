@@ -90,3 +90,18 @@ export async function deleteTask(userId: string, id: string): Promise<Task | nul
 		.returning();
 	return row ?? null;
 }
+
+export interface TaskSignal {
+	projectId: string;
+	status: TaskStatus;
+	dueDate: string | null;
+}
+
+/** Minimal task facts for health calculation across many projects. */
+export function findTaskSignals(userId: string, projectIds: string[]): Promise<TaskSignal[]> {
+	if (projectIds.length === 0) return Promise.resolve([]);
+	return db
+		.select({ projectId: tasks.projectId, status: tasks.status, dueDate: tasks.dueDate })
+		.from(tasks)
+		.where(and(eq(tasks.userId, userId), inArray(tasks.projectId, projectIds)));
+}

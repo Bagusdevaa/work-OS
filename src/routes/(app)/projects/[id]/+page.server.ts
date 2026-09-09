@@ -34,6 +34,7 @@ import {
 	setTaskStatus,
 	validateTaskRefs
 } from '$lib/features/tasks/task.service';
+import { calculateProjectHealth } from '$lib/features/projects/project-health';
 import { requireUser } from '$lib/server/auth/session';
 import { formDataToValues, parseForm } from '$lib/server/forms';
 
@@ -47,7 +48,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		listResourcesForProject(user.id, project.id),
 		listRecentActivity(user.id, { projectId: project.id, limit: 12 })
 	]);
-	return { project, milestones, tasks, notes, resources, activity };
+	const health = calculateProjectHealth({ ...project, tasks, milestones }, new Date());
+	return { project, health, milestones, tasks, notes, resources, activity };
 };
 
 export const actions: Actions = {

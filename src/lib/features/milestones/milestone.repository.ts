@@ -1,6 +1,7 @@
-import { and, asc, eq, getTableColumns } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
 import { milestones, tasks } from '$lib/server/db/schema';
+import type { MilestoneStatus } from '$lib/types/domain';
 import type { Milestone, MilestoneWithCounts, NewMilestone } from './milestone.types';
 
 const withCounts = {
@@ -53,4 +54,26 @@ export async function deleteMilestone(userId: string, id: string): Promise<Miles
 		.where(and(eq(milestones.id, id), eq(milestones.userId, userId)))
 		.returning();
 	return row ?? null;
+}
+
+export interface MilestoneSignal {
+	projectId: string;
+	status: MilestoneStatus;
+	dueDate: string | null;
+}
+
+/** Minimal milestone facts for health calculation across many projects. */
+export function findMilestoneSignals(
+	userId: string,
+	projectIds: string[]
+): Promise<MilestoneSignal[]> {
+	if (projectIds.length === 0) return Promise.resolve([]);
+	return db
+		.select({
+			projectId: milestones.projectId,
+			status: milestones.status,
+			dueDate: milestones.dueDate
+		})
+		.from(milestones)
+		.where(and(eq(milestones.userId, userId), inArray(milestones.projectId, projectIds)));
 }

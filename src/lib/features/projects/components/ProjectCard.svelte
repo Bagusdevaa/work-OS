@@ -2,15 +2,17 @@
 	import PriorityBadge from '$lib/components/shared/PriorityBadge.svelte';
 	import Swatch from '$lib/components/ui/Swatch.svelte';
 	import { describeDueDate, describeTimeAgo, todayISO } from '$lib/utils/dates';
-	import type { ProjectWithContext } from '../project.types';
+	import type { ProjectWithHealth } from '../project.types';
+	import HealthBadge from './HealthBadge.svelte';
 	import ProjectStatusBadge from './ProjectStatusBadge.svelte';
 
 	interface Props {
-		project: ProjectWithContext;
+		project: ProjectWithHealth;
 	}
 
 	let { project }: Props = $props();
 	const today = todayISO();
+	const inFlight = $derived(['planning', 'active', 'blocked'].includes(project.status));
 </script>
 
 <a href="/projects/{project.id}" class="project-card">
@@ -21,6 +23,9 @@
 	</div>
 	<h3 class="project-card__name">{project.name}</h3>
 	<div class="project-card__badges">
+		{#if inFlight}
+			<HealthBadge state={project.health.state} reasons={project.health.reasons} />
+		{/if}
 		<ProjectStatusBadge status={project.status} />
 		<PriorityBadge priority={project.priority} />
 	</div>
