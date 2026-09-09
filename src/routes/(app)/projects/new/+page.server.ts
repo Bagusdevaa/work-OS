@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { listAreas } from '$lib/features/areas/area.service';
 import { listActiveCompanies } from '$lib/features/companies/company.service';
+import { markInboxItemConvertedToProject } from '$lib/features/inbox/inbox.service';
 import { projectSchema } from '$lib/features/projects/project.schema';
 import { createProject, validateProjectRefs } from '$lib/features/projects/project.service';
 import { requireUser } from '$lib/server/auth/session';
@@ -11,7 +12,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const user = requireUser(locals);
 	const [companies, areas] = await Promise.all([listActiveCompanies(user.id), listAreas(user.id)]);
 	if (companies.length === 0) redirect(303, '/companies/new');
-	return { companies, areas, presetCompanyId: url.searchParams.get('company') ?? '' };
+	return {
+		companies,
+		areas,
+		presetCompanyId: url.searchParams.get('company') ?? '',
+		presetName: url.searchParams.get('name') ?? '',
+		inboxItemId: url.searchParams.get('inbox') ?? ''
+	};
 };
 
 export const actions: Actions = {
@@ -25,6 +32,10 @@ export const actions: Actions = {
 		if (refErrors) return fail(400, { errors: refErrors, values: formDataToValues(formData) });
 
 		const project = await createProject(user.id, parsed.data);
+		const inboxItemId = formData.get('inboxItemId');
+		if (typeof inboxItemId === 'string' && inboxItemId) {
+			await markInboxItemConvertedToProject(user.id, inboxItemId, project.id);
+		}
 		redirect(303, `/projects/${project.id}`);
 	}
 };

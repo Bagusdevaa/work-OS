@@ -4,7 +4,9 @@
 	import ProjectForm from '$lib/features/projects/components/ProjectForm.svelte';
 
 	let { data, form } = $props();
-	const values = $derived(form?.values ?? { companyId: data.presetCompanyId });
+	const values = $derived(
+		form?.values ?? { companyId: data.presetCompanyId, name: data.presetName }
+	);
 </script>
 
 <svelte:head>
@@ -25,5 +27,6 @@
 		errors={form?.errors}
 		submitLabel="Create project"
 		cancelHref="/projects"
+		hidden={data.inboxItemId ? { inboxItemId: data.inboxItemId } : undefined}
 	/>
 </Card>

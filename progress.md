@@ -31,20 +31,20 @@ MVP — Foundation
 - [x] Project health (deterministic `calculateProjectHealth` with reasons; badge on project page, cards and company rows; 14 tests)
 - [x] Dashboard (stats, "Focus now" recommendations with reasons, needs-attention projects, active projects, upcoming deadlines, recent activity; recommendation/bucket/deadline logic tested)
 - [x] My Work (Overdue / Due today / This week / Blocked / Next up sections; context filter by company, project or personal; `?view=` deep links from dashboard; tested)
+- [x] Inbox (quick capture with automatic kind detection, convert to task / note / project, dismiss and restore, processed history; classification tested)
 
 ---
 
 ## In Progress
 
-Inbox (quick capture, convert to task, dismiss).
+Calendar (month grid + agenda of task, milestone, project deadlines and events).
 
 ---
 
 ## Next
 
-1. Inbox
-2. Calendar
-3. Weekly Review
+1. Calendar
+2. Weekly Review
 
 ---
 
@@ -73,4 +73,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — My Work complete (Task 11 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — inbox complete (Task 12 of the MVP plan in `docs/superpowers/plans/`).

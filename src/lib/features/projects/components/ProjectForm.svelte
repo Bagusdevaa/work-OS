@@ -23,9 +23,19 @@
 		errors?: FormErrors;
 		submitLabel: string;
 		cancelHref: string;
+		/** Extra hidden fields to submit (e.g. the inbox item this project came from). */
+		hidden?: Record<string, string>;
 	}
 
-	let { companies, areas, values = {}, errors = {}, submitLabel, cancelHref }: Props = $props();
+	let {
+		companies,
+		areas,
+		values = {},
+		errors = {},
+		submitLabel,
+		cancelHref,
+		hidden = {}
+	}: Props = $props();
 	let submitting = $state(false);
 	// svelte-ignore state_referenced_locally
 	let companyId = $state(values.companyId || companies[0]?.id || '');
@@ -53,6 +63,9 @@
 		};
 	}}
 >
+	{#each Object.entries(hidden) as [name, value] (name)}
+		<input type="hidden" {name} {value} />
+	{/each}
 	<fieldset class="form__group">
 		<legend class="form__legend">Basics</legend>
 		<Input
