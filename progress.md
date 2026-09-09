@@ -27,24 +27,24 @@ MVP — Foundation
 - [x] Projects (list with filters, create/edit, project page with focus card, status select, why/goal, notes, resources, activity)
 - [x] Notes & Resources (inline create/delete on the project page)
 - [x] Milestones (inline create/complete/reopen/delete on the project page; progress calculated from tasks; tested)
+- [x] Tasks (quick add grouped by milestone, done toggle, edit page with delete, project progress; sorting/overdue/grouping tested)
 
 ---
 
 ## In Progress
 
-Tasks (project task list with quick add, status toggles, edit page; My Work groundwork).
+Project health (deterministic, with transparent reasons) shown on project pages and lists.
 
 ---
 
 ## Next
 
-1. Tasks
+1. Project health
 2. Dashboard
-3. Project health
-4. My Work
-5. Inbox
-6. Calendar
-7. Weekly Review
+3. My Work
+4. Inbox
+5. Calendar
+6. Weekly Review
 
 ---
 
@@ -73,4 +73,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — milestones complete (Task 7 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — tasks complete (Task 8 of the MVP plan in `docs/superpowers/plans/`).

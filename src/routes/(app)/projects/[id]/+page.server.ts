@@ -26,19 +26,28 @@ import {
 	deleteResource,
 	listResourcesForProject
 } from '$lib/features/resources/resource.service';
+import { quickTaskSchema, taskIdSchema, taskStatusSchema } from '$lib/features/tasks/task.schema';
+import {
+	createTask,
+	deleteTask,
+	listTasksForProject,
+	setTaskStatus,
+	validateTaskRefs
+} from '$lib/features/tasks/task.service';
 import { requireUser } from '$lib/server/auth/session';
-import { parseForm } from '$lib/server/forms';
+import { formDataToValues, parseForm } from '$lib/server/forms';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = requireUser(locals);
 	const project = await requireProject(user.id, params.id);
-	const [milestones, notes, resources, activity] = await Promise.all([
+	const [milestones, tasks, notes, resources, activity] = await Promise.all([
 		listMilestonesForProject(user.id, project.id),
+		listTasksForProject(user.id, project.id),
 		listNotesForProject(user.id, project.id),
 		listResourcesForProject(user.id, project.id),
 		listRecentActivity(user.id, { projectId: project.id, limit: 12 })
 	]);
-	return { project, milestones, notes, resources, activity };
+	return { project, milestones, tasks, notes, resources, activity };
 };
 
 export const actions: Actions = {
@@ -82,6 +91,34 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { milestoneErrors: parsed.errors });
 		await deleteMilestone(user.id, parsed.data.milestoneId);
 		return { milestoneDeleted: true };
+	},
+
+	createTask: async ({ request, locals, params }) => {
+		const user = requireUser(locals);
+		const formData = await request.formData();
+		const parsed = parseForm(formData, quickTaskSchema);
+		if (!parsed.ok) return fail(400, { taskErrors: parsed.errors, taskValues: parsed.values });
+		const refErrors = await validateTaskRefs(user.id, params.id, parsed.data.milestoneId);
+		if (refErrors)
+			return fail(400, { taskErrors: refErrors, taskValues: formDataToValues(formData) });
+		await createTask(user.id, params.id, parsed.data);
+		return { taskCreated: true };
+	},
+
+	setTaskStatus: async ({ request, locals }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), taskStatusSchema);
+		if (!parsed.ok) return fail(400, { taskErrors: parsed.errors });
+		await setTaskStatus(user.id, parsed.data.taskId, parsed.data.status);
+		return { taskUpdated: true };
+	},
+
+	deleteTask: async ({ request, locals }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), taskIdSchema);
+		if (!parsed.ok) return fail(400, { taskErrors: parsed.errors });
+		await deleteTask(user.id, parsed.data.taskId);
+		return { taskDeleted: true };
 	},
 
 	createNote: async ({ request, locals, params }) => {

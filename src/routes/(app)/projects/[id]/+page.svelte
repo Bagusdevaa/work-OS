@@ -9,6 +9,10 @@
 	import PriorityBadge from '$lib/components/shared/PriorityBadge.svelte';
 	import ActivityList from '$lib/features/activities/components/ActivityList.svelte';
 	import MilestoneList from '$lib/features/milestones/components/MilestoneList.svelte';
+	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
+	import TaskList from '$lib/features/tasks/components/TaskList.svelte';
+	import TaskQuickAdd from '$lib/features/tasks/components/TaskQuickAdd.svelte';
+	import { calculateTaskProgress } from '$lib/features/tasks/task.utils';
 	import NoteList from '$lib/features/notes/components/NoteList.svelte';
 	import ProjectFocusCard from '$lib/features/projects/components/ProjectFocusCard.svelte';
 	import ProjectStatusBadge from '$lib/features/projects/components/ProjectStatusBadge.svelte';
@@ -21,6 +25,8 @@
 	const project = $derived(data.project);
 	const today = todayISO();
 	const milestonesDone = $derived(data.milestones.filter((m) => m.status === 'completed').length);
+	const progress = $derived(calculateTaskProgress(data.tasks));
+	const openTasks = $derived(data.tasks.filter((task) => task.status !== 'done').length);
 </script>
 
 <svelte:head>
@@ -59,6 +65,15 @@
 	</span>
 </div>
 
+{#if progress.total > 0}
+	<div class="progress-row">
+		<ProgressBar percent={progress.percent} label="Project progress" size="md" />
+		<span class="progress-row__text"
+			>{progress.done}/{progress.total} tasks · {progress.percent}%</span
+		>
+	</div>
+{/if}
+
 {#if form?.statusError}
 	<p class="form-error" role="alert">{form.statusError}</p>
 {/if}
@@ -79,6 +94,17 @@
 					values={form?.milestoneValues}
 					errors={form?.milestoneErrors}
 					open={!!form?.milestoneErrors}
+				/>
+			</Section>
+		</Card>
+
+		<Card>
+			<Section title="Tasks" meta={data.tasks.length ? `${openTasks} open` : undefined}>
+				<TaskList tasks={data.tasks} milestones={data.milestones} {today} />
+				<TaskQuickAdd
+					milestones={data.milestones}
+					values={form?.taskValues}
+					errors={form?.taskErrors}
 				/>
 			</Section>
 		</Card>
@@ -164,6 +190,19 @@
 	.meta__text {
 		font-size: var(--text-small);
 		color: var(--color-text-muted);
+	}
+	.progress-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+		max-width: 520px;
+		margin-top: calc(-1 * var(--space-4));
+		margin-bottom: var(--space-8);
+	}
+	.progress-row__text {
+		font-size: var(--text-small);
+		color: var(--color-text-secondary);
+		white-space: nowrap;
 	}
 	.form-error {
 		color: var(--color-danger-text);
