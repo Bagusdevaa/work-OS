@@ -24,26 +24,27 @@ MVP — Foundation
 - [x] Application shell implemented (responsive sidebar/rail/drawer, top bar, page primitives, error page)
 - [x] Companies & Areas (list, create, edit, archive/restore, overview page with areas, projects, activity)
 - [x] Activity log (repository/service + ActivityList component)
+- [x] Projects (list with filters, create/edit, project page with focus card, status select, why/goal, notes, resources, activity)
+- [x] Notes & Resources (inline create/delete on the project page)
 
 ---
 
 ## In Progress
 
-Projects (CRUD, project page, activity).
+Milestones (progress from tasks, inline management on the project page).
 
 ---
 
 ## Next
 
-1. Projects
-2. Milestones
-3. Tasks
-4. Dashboard
-5. Project health
-6. My Work
-7. Inbox
-8. Calendar
-9. Weekly Review
+1. Milestones
+2. Tasks
+3. Dashboard
+4. Project health
+5. My Work
+6. Inbox
+7. Calendar
+8. Weekly Review
 
 ---
 
@@ -72,4 +73,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — app shell, companies and areas complete (Tasks 4–5 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — projects, notes and resources complete (Task 6 of the MVP plan in `docs/superpowers/plans/`).

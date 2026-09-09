@@ -174,3 +174,22 @@ ol {
 	background-repeat: no-repeat;
 	background-position: right var(--space-3) center;
 }
+
+/* Small icon-only button used for inline destructive actions */
+.icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-2);
+	border: none;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--color-text-muted);
+	transition:
+		background-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
+}
+.icon-button:hover {
+	background: var(--color-danger-bg);
+	color: var(--color-danger-text);
+}
