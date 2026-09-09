@@ -29,22 +29,22 @@ MVP — Foundation
 - [x] Milestones (inline create/complete/reopen/delete on the project page; progress calculated from tasks; tested)
 - [x] Tasks (quick add grouped by milestone, done toggle, edit page with delete, project progress; sorting/overdue/grouping tested)
 - [x] Project health (deterministic `calculateProjectHealth` with reasons; badge on project page, cards and company rows; 14 tests)
+- [x] Dashboard (stats, "Focus now" recommendations with reasons, needs-attention projects, active projects, upcoming deadlines, recent activity; recommendation/bucket/deadline logic tested)
 
 ---
 
 ## In Progress
 
-Dashboard with next-action recommendations, attention lists, upcoming deadlines and activity.
+My Work (cross-project task sections with company/project/personal filters).
 
 ---
 
 ## Next
 
-1. Dashboard
-2. My Work
-3. Inbox
-4. Calendar
-5. Weekly Review
+1. My Work
+2. Inbox
+3. Calendar
+4. Weekly Review
 
 ---
 
@@ -73,4 +73,4 @@ None.
 
 ## Last Updated
 
-2026-09-09 — project health complete (Task 9 of the MVP plan in `docs/superpowers/plans/`).
+2026-09-09 — dashboard complete (Task 10 of the MVP plan in `docs/superpowers/plans/`).

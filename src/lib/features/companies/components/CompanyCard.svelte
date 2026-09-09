@@ -3,6 +3,7 @@
 	import Swatch from '$lib/components/ui/Swatch.svelte';
 	import type { CompanySummary } from '../company.types';
 	import { companyInitial } from '../company.utils';
+	import { pluralize } from '$lib/utils/text';
 
 	interface Props {
 		company: CompanySummary;
@@ -25,9 +26,10 @@
 		<p class="company-card__description">{company.description}</p>
 	{/if}
 	<p class="company-card__meta">
-		{company.inFlightProjects} in flight · {company.totalProjects}
-		{company.totalProjects === 1 ? 'project' : 'projects'} · {company.areaCount}
-		{company.areaCount === 1 ? 'area' : 'areas'}
+		{company.inFlightProjects} in flight · {pluralize(company.totalProjects, 'project')} · {pluralize(
+			company.areaCount,
+			'area'
+		)}
 	</p>
 </a>
 

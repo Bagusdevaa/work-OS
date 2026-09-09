@@ -19,6 +19,7 @@
 	import AreaList from '$lib/features/areas/components/AreaList.svelte';
 	import { companyInitial } from '$lib/features/companies/company.utils';
 	import ProjectRow from '$lib/features/projects/components/ProjectRow.svelte';
+	import { pluralize } from '$lib/utils/text';
 
 	let { data, form } = $props();
 	const archived = $derived(data.company.status === 'archived');
@@ -65,7 +66,7 @@
 <div class="layout">
 	<div class="layout__main">
 		<Card>
-			<Section title="Projects" meta="{data.projects.length} total">
+			<Section title="Projects" meta={pluralize(data.projects.length, 'project')}>
 				{#if data.projects.length === 0}
 					<EmptyState
 						size="sm"

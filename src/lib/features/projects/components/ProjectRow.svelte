@@ -79,7 +79,16 @@
 		font-size: var(--text-xs);
 	}
 	@media (max-width: 767px) {
-		.row__time {
+		.row {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--space-2);
+		}
+		.row__main {
+			width: 100%;
+		}
+		.row__time,
+		.row :global(.row__chevron) {
 			display: none;
 		}
 	}

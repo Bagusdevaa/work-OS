@@ -1,7 +1,7 @@
-import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, isNotNull, ne } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
-import { milestones, tasks } from '$lib/server/db/schema';
-import type { MilestoneStatus } from '$lib/types/domain';
+import { milestones, projects, tasks } from '$lib/server/db/schema';
+import { IN_FLIGHT_PROJECT_STATUSES, type MilestoneStatus } from '$lib/types/domain';
 import type { Milestone, MilestoneWithCounts, NewMilestone } from './milestone.types';
 
 const withCounts = {
@@ -76,4 +76,37 @@ export function findMilestoneSignals(
 		})
 		.from(milestones)
 		.where(and(eq(milestones.userId, userId), inArray(milestones.projectId, projectIds)));
+}
+
+export interface MilestoneDeadline {
+	id: string;
+	name: string;
+	dueDate: string | null;
+	status: MilestoneStatus;
+	projectId: string;
+	projectName: string;
+}
+
+/** Open, dated milestones in projects that are in flight — for calendars and deadlines. */
+export function findMilestoneDeadlines(userId: string): Promise<MilestoneDeadline[]> {
+	return db
+		.select({
+			id: milestones.id,
+			name: milestones.name,
+			dueDate: milestones.dueDate,
+			status: milestones.status,
+			projectId: milestones.projectId,
+			projectName: projects.name
+		})
+		.from(milestones)
+		.innerJoin(projects, eq(milestones.projectId, projects.id))
+		.where(
+			and(
+				eq(milestones.userId, userId),
+				ne(milestones.status, 'completed'),
+				isNotNull(milestones.dueDate),
+				inArray(projects.status, [...IN_FLIGHT_PROJECT_STATUSES])
+			)
+		)
+		.orderBy(asc(milestones.dueDate));
 }
