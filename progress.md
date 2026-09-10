@@ -60,10 +60,17 @@ Nothing in the repo. Deployment state as of 2026-09-11:
 
 - Vercel project `work-os` is linked to the GitHub repo; production builds from `main` succeed and
   `https://work-os-two-kappa.vercel.app` serves the app. Builds before the adapter swap all failed.
-- `SUPABASE_URL` and `SUPABASE_ANON_KEY` are set correctly — proven live: a password-reset and a
-  magic-link request against the deployment both reached Supabase Auth and returned success.
-  `DATABASE_URL` is present too (the db client throws at import when it is missing, and no request
-  500s), but actual query connectivity stays unproven until the first sign-in.
+- All three environment variables are correct, proven end to end on 2026-09-11: a magic link issued
+  from `https://work.bagusdeva.com` was exchanged for a session at `/auth/callback`, and the
+  resulting request wrote the first `public.users` row through Drizzle. `DATABASE_URL` therefore
+  reaches the hosted database and the app can query it.
+- Auth redirect configuration is correct: Supabase's logs show the callback origin
+  (`https://work.bagusdeva.com/auth/callback?next=%2F`) rather than the default Site URL, which is
+  what a rejected redirect falls back to.
+- Supabase's built-in email sender does deliver (the signup confirmation and the magic link both
+  arrived at a Gmail address), so custom SMTP is a robustness step rather than a blocker — it stays
+  rate-limited to a handful of messages per hour.
+- The custom domain `https://work.bagusdeva.com` serves the app over HTTPS.
 - The schema was applied to the hosted project through the Supabase MCP, then verified against the
   local database: column, constraint and index fingerprints all match (123 columns, identical MD5s).
   Drizzle's journal row was written with the same sha256 the migrator computes, so a later
@@ -88,14 +95,16 @@ was submitted before Svelte flushed the bound state.
 
 ## Next
 
-1. Deva, dashboard-only work in `docs/supabase-production-setup.md` — none of it is reachable from
-   the Supabase or Vercel MCP:
-   - **Step 6 first (blocking).** Until the Site URL and redirect allow list include the deployed
-     origin, every confirmation, reset and magic link bounces to the wrong place.
-   - Step 7 (confirm email, min password length 8), step 8 (custom SMTP — the built-in sender is
-     too rate-limited to depend on), step 10 (attach `work.bagusdeva.com`), step 11 (walk the
-     verification checklist), step 12 (close public signups).
-2. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
+1. **Close public signups (runbook step 12).** The app is live on a public domain with
+   registration open; until this is off, anyone who finds the URL can create an account. This is
+   the only remaining item that matters for privacy.
+2. Walk the rest of the functional checklist (runbook step 11) on the deployed app: create a
+   company, project and task, reorder tasks by drag and by keyboard, archive and restore a project,
+   switch the calendar to Week, and check it on a phone. Only auth and the users table have been
+   exercised in production so far.
+3. Set the minimum password length to 8 in the Supabase dashboard so it matches the Zod rule
+   (runbook step 7), and add custom SMTP (step 8) before depending on reset or magic-link email.
+4. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
    the deterministic workflows have proven themselves in daily use.
 
 ---
@@ -134,5 +143,6 @@ was submitted before Svelte flushed the bound state.
 
 ## Last Updated
 
-2026-09-11 — Deployed to Vercel and schema applied to hosted Supabase via MCP. Remaining work is
-Supabase dashboard configuration (auth URLs, email, signups) plus attaching the custom domain.
+2026-09-11 — Live at https://work.bagusdeva.com. Auth verified end to end in production (signup,
+email confirmation, magic-link sign-in) and the first user row written through Drizzle. Remaining:
+close public signups, then the functional checklist.
