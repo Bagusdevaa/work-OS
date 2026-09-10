@@ -2,7 +2,10 @@
 
 ## Current Milestone
 
-MVP — Foundation (complete; awaiting merge of `feat/mvp-foundation` into `main`)
+Post-MVP — account recovery, manual order, archive, week view
+(complete on `feat/post-mvp`; awaiting merge into `main`)
+
+Previous: MVP — Foundation (complete, merged into `main` 2026-09-10)
 
 ---
 
@@ -35,26 +38,47 @@ MVP — Foundation (complete; awaiting merge of `feat/mvp-foundation` into `main
 - [x] Calendar (month grid + agenda of task, milestone and project deadlines plus events; add/remove events; grid helpers tested)
 - [x] Weekly Review (computed summary: completed tasks/milestones, projects by health, overdue, next week; editable wins/problems/lessons/priorities saved per week with a snapshot; tested)
 
+### Post-MVP (plan: `docs/superpowers/plans/2026-09-10-post-mvp.md`)
+
+- [x] Password reset (`/forgot-password` → emailed link → `/reset-password`) and magic-link sign-in, both through `/auth/callback`; `friendlyAuthMessage` and the password schemas tested
+- [x] Manual task order — native drag-and-drop with ▲▼ keyboard/touch fallback, Smart/Manual toggle per project, `sortOrder` rewritten in one transaction; `moveWithinGroup`, `sortOrderPatches` and manual `sortTasks` tested
+- [x] Project archive page (`/projects/archive`) grouping completed and archived projects by company, with Archive/Restore and an "Archived (n)" link from Projects; `groupProjectsByCompany` tested
+- [x] Calendar week view (`?view=week&week=YYYY-MM-DD`) beside the month grid, with a Month/Week toggle that keeps the visible dates; `buildWeekGrid`, `shiftWeek`, `weekLabel`, `currentWeek` tested
+- [x] Hosted Supabase runbook (`docs/supabase-production-setup.md`); local `supabase/config.toml` auth URLs aligned with the dev server on port 5173
+
 ---
 
 ## In Progress
 
-Nothing. MVP verified: `bun run check`, `bun run lint`, `bun test` (133 tests), `bun run build` all pass; adapter-node server smoke-tested; every page checked at 1440×900, 1280×800, 1024×768, 768×1024 and 390×844 with no horizontal overflow.
+Nothing. Post-MVP verified: `bun run check`, `bun run lint`, `bun test` (174 tests) and
+`bun run build` all pass, and every new flow was exercised against the running local stack —
+password reset end to end through Mailpit (request → emailed PKCE link → `/reset-password` → sign in
+with the new password), magic-link sign-in, task reordering by drag and by keyboard, archive and
+restore, and the calendar Month/Week toggle. Nine pages checked in Chrome at 1440, 1280, 1024, 768
+and 390 px: no horizontal overflow, no console or page errors.
+
+Two defects surfaced only in that live pass and are fixed: magic link reported a distinct error for
+unknown addresses (account enumeration), and a dropped task submitted an empty id because the form
+was submitted before Svelte flushed the bound state.
 
 ---
 
 ## Next
 
-1. Deva: review commits on `feat/mvp-foundation`, merge into `main`.
-2. Point `.env` at the real Supabase project and run `bun run db:migrate` there.
-3. Post-MVP candidates: password reset / magic link, task reordering, project archive view, richer calendar (week view), AI features per AGENTS.md §20 once workflows are proven.
+1. Deva: review commits on `feat/post-mvp`, merge into `main`.
+2. Follow `docs/supabase-production-setup.md` to move onto a hosted Supabase project. Custom SMTP
+   (step 8) matters most — the built-in sender is too rate-limited for reset and magic-link email.
+3. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
+   the deterministic workflows have proven themselves in daily use.
 
 ---
 
 ## Known Issues
 
 - Email confirmation on signup is disabled in the local Supabase config; hosted Supabase enables it by default (the signup page already handles the "check your email" state).
-- `supabase/config.toml` is committed as generated; adjust `site_url`/`additional_redirect_urls` for the hosted project.
+- Hosted Supabase needs its own Site URL and redirect allow list — see `docs/supabase-production-setup.md` step 6. The values in `supabase/config.toml` apply to the local stack only.
+- Supabase's built-in email sender is rate-limited to a few messages per hour. Password reset and magic link need custom SMTP before daily use (runbook step 8).
+- Drag-and-drop reordering is pointer-only by design; the ▲▼ buttons carry keyboard and touch, and the grip is hidden where hover does not exist.
 
 ---
 
@@ -72,9 +96,12 @@ Nothing. MVP verified: `bun run check`, `bun run lint`, `bun test` (133 tests), 
 - Supabase Auth is used server-side only via `@supabase/ssr`; no browser Supabase client.
 - Styling uses plain CSS with design tokens (no utility framework) to keep dependencies minimal.
 - Unit tests target pure domain logic and run with `bun test`; framework behaviour is not tested.
+- Manual task order is opt-in per project (`?sort=manual`) rather than replacing the smart sort: an order the user drags has to survive, but urgency is the better default.
+- Reordering a task is not written to the activity log — moving work around is not progress, and logging it would drown the log and skew project health.
 
 ---
 
 ## Last Updated
 
-2026-09-09 — MVP milestone complete and verified (all 14 tasks of the plan in `docs/superpowers/plans/2026-09-09-mvp-foundation.md`).
+2026-09-10 — Post-MVP milestone complete on `feat/post-mvp`: account recovery, manual task order,
+project archive, calendar week view and the hosted-Supabase runbook.
