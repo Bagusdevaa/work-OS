@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { LoginInput, SignupInput } from './auth.schema';
+import type { EmailOnlyInput, LoginInput, SignupInput } from './auth.schema';
 
 export type AuthResult = { ok: true } | { ok: false; message: string };
 export type SignupResult = AuthResult & { needsConfirmation?: boolean };
@@ -8,7 +8,15 @@ const FRIENDLY_MESSAGES: Array<[pattern: RegExp, message: string]> = [
 	[/invalid login credentials/i, 'Incorrect email or password.'],
 	[/email not confirmed/i, 'Please confirm your email address before signing in.'],
 	[/already registered/i, 'An account with this email already exists.'],
-	[/rate limit/i, 'Too many attempts. Please wait a moment and try again.']
+	[
+		/should be different from the old password/i,
+		'Your new password must be different from your current one.'
+	],
+	[
+		/(token|link).*(expired|invalid)|expired.*(token|link)/i,
+		'That link has expired or was already used. Request a new one.'
+	],
+	[/rate limit|too many requests/i, 'Too many attempts. Please wait a moment and try again.']
 ];
 
 export function friendlyAuthMessage(raw: string): string {
@@ -36,4 +44,36 @@ export async function signUpWithPassword(
 	});
 	if (error) return { ok: false, message: friendlyAuthMessage(error.message) };
 	return { ok: true, needsConfirmation: data.session === null };
+}
+
+/** Emails a recovery link; the callback forwards the user to /reset-password. */
+export async function sendPasswordReset(
+	supabase: SupabaseClient,
+	input: EmailOnlyInput,
+	redirectTo: string
+): Promise<AuthResult> {
+	const { error } = await supabase.auth.resetPasswordForEmail(input.email, { redirectTo });
+	return error ? { ok: false, message: friendlyAuthMessage(error.message) } : { ok: true };
+}
+
+/** Emails a one-time sign-in link. Never creates an account for an unknown address. */
+export async function sendMagicLink(
+	supabase: SupabaseClient,
+	input: EmailOnlyInput,
+	emailRedirectTo: string
+): Promise<AuthResult> {
+	const { error } = await supabase.auth.signInWithOtp({
+		email: input.email,
+		options: { emailRedirectTo, shouldCreateUser: false }
+	});
+	return error ? { ok: false, message: friendlyAuthMessage(error.message) } : { ok: true };
+}
+
+/** Sets a new password for the session created by a recovery link. */
+export async function updatePassword(
+	supabase: SupabaseClient,
+	password: string
+): Promise<AuthResult> {
+	const { error } = await supabase.auth.updateUser({ password });
+	return error ? { ok: false, message: friendlyAuthMessage(error.message) } : { ok: true };
 }
