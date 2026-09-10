@@ -33,3 +33,9 @@ export const projectFocusSchema = z.object({
 	nextAction: optionalText(500)
 });
 export type ProjectFocusInput = z.output<typeof projectFocusSchema>;
+
+/** Status change addressed by id, for listings that act on many projects. */
+export const projectStatusChangeSchema = z.object({
+	projectId: requiredUuid(),
+	status: requiredEnum(PROJECT_STATUSES)
+});

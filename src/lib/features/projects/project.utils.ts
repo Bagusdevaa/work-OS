@@ -56,3 +56,35 @@ export function sortProjectsForList<T extends Sortable>(projects: T[]): T[] {
 			b.lastActivityAt.getTime() - a.lastActivityAt.getTime()
 	);
 }
+
+interface CompanyGrouped {
+	companyId: string;
+	companyName: string;
+}
+
+export interface CompanyProjectGroup<T> {
+	companyId: string;
+	companyName: string;
+	projects: T[];
+}
+
+/** Groups projects under their company for archive-style listings, companies A→Z. */
+export function groupProjectsByCompany<T extends CompanyGrouped>(
+	projects: T[]
+): CompanyProjectGroup<T>[] {
+	const groups = new Map<string, CompanyProjectGroup<T>>();
+	for (const project of projects) {
+		const group = groups.get(project.companyId);
+		if (group) group.projects.push(project);
+		else {
+			groups.set(project.companyId, {
+				companyId: project.companyId,
+				companyName: project.companyName,
+				projects: [project]
+			});
+		}
+	}
+	return [...groups.values()].sort((a, b) =>
+		a.companyName.localeCompare(b.companyName, undefined, { sensitivity: 'base' })
+	);
+}

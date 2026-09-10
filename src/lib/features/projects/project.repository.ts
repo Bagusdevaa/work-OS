@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
 import { areas, companies, projects } from '$lib/server/db/schema';
 import type { ProjectStatus } from '$lib/types/domain';
@@ -34,6 +34,17 @@ export function findProjects(
 	return withContext()
 		.where(and(...conditions))
 		.orderBy(desc(projects.lastActivityAt));
+}
+
+export async function countProjects(userId: string, filter: ProjectFilter = {}): Promise<number> {
+	const conditions = [eq(projects.userId, userId)];
+	if (filter.companyId) conditions.push(eq(projects.companyId, filter.companyId));
+	if (filter.statuses?.length) conditions.push(inArray(projects.status, [...filter.statuses]));
+	const [row] = await db
+		.select({ total: count() })
+		.from(projects)
+		.where(and(...conditions));
+	return row?.total ?? 0;
 }
 
 export async function findProjectById(

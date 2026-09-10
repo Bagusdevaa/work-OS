@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Archive from '@lucide/svelte/icons/archive';
 	import FolderKanban from '@lucide/svelte/icons/folder-kanban';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -17,6 +18,12 @@
 
 <PageHeader title="Projects" description="The meaningful units of work across all your companies.">
 	{#snippet actions()}
+		{#if data.archivedCount > 0}
+			<Button href="/projects/archive" variant="secondary">
+				<Archive size={16} aria-hidden="true" />
+				Archived ({data.archivedCount})
+			</Button>
+		{/if}
 		<Button href="/projects/new" disabled={data.companies.length === 0}>
 			<Plus size={16} aria-hidden="true" />
 			New project

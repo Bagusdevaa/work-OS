@@ -5,7 +5,11 @@ import { findCompanyById } from '$lib/features/companies/company.repository';
 import { findMilestoneSignals } from '$lib/features/milestones/milestone.repository';
 import { findTaskSignals } from '$lib/features/tasks/task.repository';
 import type { FormErrors } from '$lib/server/forms';
-import { PROJECT_STATUS_LABELS, type ProjectStatus } from '$lib/types/domain';
+import {
+	ARCHIVED_PROJECT_STATUSES,
+	PROJECT_STATUS_LABELS,
+	type ProjectStatus
+} from '$lib/types/domain';
 import * as repo from './project.repository';
 import type { ProjectFocusInput, ProjectInput } from './project.schema';
 import { calculateProjectHealth } from './project-health';
@@ -18,6 +22,15 @@ export async function listProjects(
 ): Promise<ProjectWithHealth[]> {
 	const projects = sortProjectsForList(await repo.findProjects(userId, filter));
 	return attachHealth(userId, projects);
+}
+
+/** Completed and archived projects, most recently touched first. Health is irrelevant here. */
+export function listArchivedProjects(userId: string): Promise<ProjectWithContext[]> {
+	return repo.findProjects(userId, { statuses: ARCHIVED_PROJECT_STATUSES });
+}
+
+export function countArchivedProjects(userId: string): Promise<number> {
+	return repo.countProjects(userId, { statuses: ARCHIVED_PROJECT_STATUSES });
 }
 
 /** Loads task and milestone signals for the given projects and computes each one's health. */
