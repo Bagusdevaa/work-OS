@@ -10,6 +10,19 @@ Two assumptions, both easy to change:
 - The app will live at **`work.bagusdeva.com`**. Substitute your own subdomain everywhere below.
 - Your Supabase region is **Singapore (`ap-southeast-1`)**, the closest to Bali.
 
+### Where you are now (2026-09-11)
+
+Already done — skip these: **1** (project `nwjnszmvlfxjhebllvuo` exists), **3** and most of **9**
+(the Vercel project `work-os` is linked to the GitHub repo, `SUPABASE_URL` / `SUPABASE_ANON_KEY` /
+`DATABASE_URL` are set, and the production deployment is live at
+`https://work-os-two-kappa.vercel.app`), and **5** (the schema was applied through the Supabase MCP
+and verified column-for-column against the local database; drizzle's migration journal was written
+to match, so `bun run db:migrate` will correctly skip it).
+
+Still to do: **2/4** only if you want to run migrations or local dev against the hosted database,
+then **6, 7, 8, 10, 11, 12**. Step 6 is the blocker — until the redirect URLs are set, every
+confirmation, reset and magic link will bounce.
+
 > Supabase and Vercel both reword their dashboards from time to time. Where a label does not match
 > what you see, look for the nearest equivalent in the same settings area — the concepts are stable
 > even when the words move.

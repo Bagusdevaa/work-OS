@@ -2,8 +2,8 @@
 
 ## Current Milestone
 
-Deployment — hosted Supabase + Vercel (repo side complete on `chore/vercel-deploy`;
-the hosted setup itself is Deva's to run)
+Deployment — hosted Supabase + Vercel. Repo side complete and merged; the app builds and serves on
+Vercel with the schema in place. What remains is dashboard-only configuration (see Next).
 
 Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2026-09-10)
 
@@ -56,7 +56,24 @@ Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2
 
 ## In Progress
 
-Nothing. Post-MVP verified: `bun run check`, `bun run lint`, `bun test` (174 tests) and
+Nothing in the repo. Deployment state as of 2026-09-11:
+
+- Vercel project `work-os` is linked to the GitHub repo; production builds from `main` succeed and
+  `https://work-os-two-kappa.vercel.app` serves the app. Builds before the adapter swap all failed.
+- `SUPABASE_URL` and `SUPABASE_ANON_KEY` are set correctly — proven live: a password-reset and a
+  magic-link request against the deployment both reached Supabase Auth and returned success.
+  `DATABASE_URL` is present too (the db client throws at import when it is missing, and no request
+  500s), but actual query connectivity stays unproven until the first sign-in.
+- The schema was applied to the hosted project through the Supabase MCP, then verified against the
+  local database: column, constraint and index fingerprints all match (123 columns, identical MD5s).
+  Drizzle's journal row was written with the same sha256 the migrator computes, so a later
+  `bun run db:migrate` skips it rather than re-applying.
+- All 12 public tables have RLS enabled (Supabase's `rls_auto_enable` event trigger does this) with
+  no policies, which is what this app wants: PostgREST and the anon key are blocked entirely, while
+  the app reaches the data through Drizzle as the table owner.
+- CSRF protection is active on the deployment (a form POST without a matching Origin is refused).
+
+Post-MVP verified: `bun run check`, `bun run lint`, `bun test` (174 tests) and
 `bun run build` all pass, and every new flow was exercised against the running local stack —
 password reset end to end through Mailpit (request → emailed PKCE link → `/reset-password` → sign in
 with the new password), magic-link sign-in, task reordering by drag and by keyboard, archive and
@@ -71,9 +88,13 @@ was submitted before Svelte flushed the bound state.
 
 ## Next
 
-1. Deva: follow `docs/supabase-production-setup.md` end to end. Two steps carry the most risk of
-   being skipped: custom SMTP (step 8), without which reset and magic-link email quietly stops, and
-   closing signups (step 12), without which anyone who finds the URL can register.
+1. Deva, dashboard-only work in `docs/supabase-production-setup.md` — none of it is reachable from
+   the Supabase or Vercel MCP:
+   - **Step 6 first (blocking).** Until the Site URL and redirect allow list include the deployed
+     origin, every confirmation, reset and magic link bounces to the wrong place.
+   - Step 7 (confirm email, min password length 8), step 8 (custom SMTP — the built-in sender is
+     too rate-limited to depend on), step 10 (attach `work.bagusdeva.com`), step 11 (walk the
+     verification checklist), step 12 (close public signups).
 2. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
    the deterministic workflows have proven themselves in daily use.
 
@@ -86,6 +107,8 @@ was submitted before Svelte flushed the bound state.
 - Supabase's built-in email sender is rate-limited to a few messages per hour. Password reset and magic link need custom SMTP before daily use (runbook step 8).
 - Signups are open by default. Until runbook step 12 is done, anyone who finds the deployed URL can register an account (their data stays scoped to them, but the accounts are real).
 - Vercel preview deployments share the production database; there is no separate staging project.
+- `drizzle.__drizzle_migrations` has RLS disabled. The `drizzle` schema is not exposed through PostgREST so it is not reachable with the anon key, but `ALTER TABLE "drizzle"."__drizzle_migrations" ENABLE ROW LEVEL SECURITY;` would close it off entirely; the app and drizzle-kit connect as the table owner and are unaffected.
+- Supabase's own `public.rls_auto_enable()` is a `SECURITY DEFINER` function callable via RPC, which the security advisor flags. It is platform-managed, only does work inside a DDL event trigger, and is what enabled RLS on our tables — left alone deliberately.
 - Drag-and-drop reordering is pointer-only by design; the ▲▼ buttons carry keyboard and touch, and the grip is hidden where hover does not exist.
 
 ---
@@ -111,5 +134,5 @@ was submitted before Svelte flushed the bound state.
 
 ## Last Updated
 
-2026-09-11 — Post-MVP merged into `main`. Repo prepared for Vercel on `chore/vercel-deploy`:
-adapter swap, serverless-safe database pooling, and a Supabase + Vercel runbook.
+2026-09-11 — Deployed to Vercel and schema applied to hosted Supabase via MCP. Remaining work is
+Supabase dashboard configuration (auth URLs, email, signups) plus attaching the custom domain.
