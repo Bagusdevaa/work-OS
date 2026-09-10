@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-node';
+import adapter from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
@@ -10,7 +10,8 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter(),
+			// Pinned so the build does not depend on whatever Node the machine happens to run.
+			adapter: adapter({ runtime: 'nodejs24.x' }),
 			typescript: {
 				config: (config) => {
 					config.include.push('../drizzle.config.ts');

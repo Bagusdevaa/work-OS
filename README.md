@@ -26,10 +26,10 @@ supabase start              # local Postgres + Auth on Docker
 supabase status             # prints DB URL, API URL and anon key for .env
 ```
 
-### Hosted Supabase
+### Going live
 
-See `docs/supabase-production-setup.md` for the step-by-step move onto a hosted
-Supabase project (connection string, auth URLs, email delivery, deployment env vars).
+See `docs/supabase-production-setup.md` for the step-by-step move onto hosted Supabase
+and Vercel (connection strings, auth URLs, email delivery, env vars, custom domain).
 
 ## Scripts
 

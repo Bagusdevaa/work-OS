@@ -2,10 +2,10 @@
 
 ## Current Milestone
 
-Post-MVP — account recovery, manual order, archive, week view
-(complete on `feat/post-mvp`; awaiting merge into `main`)
+Deployment — hosted Supabase + Vercel (repo side complete on `chore/vercel-deploy`;
+the hosted setup itself is Deva's to run)
 
-Previous: MVP — Foundation (complete, merged into `main` 2026-09-10)
+Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2026-09-10)
 
 ---
 
@@ -46,6 +46,12 @@ Previous: MVP — Foundation (complete, merged into `main` 2026-09-10)
 - [x] Calendar week view (`?view=week&week=YYYY-MM-DD`) beside the month grid, with a Month/Week toggle that keeps the visible dates; `buildWeekGrid`, `shiftWeek`, `weekLabel`, `currentWeek` tested
 - [x] Hosted Supabase runbook (`docs/supabase-production-setup.md`); local `supabase/config.toml` auth URLs aligned with the dev server on port 5173
 
+### Deployment (Vercel)
+
+- [x] Swapped `@sveltejs/adapter-node` for `@sveltejs/adapter-vercel`, runtime pinned to `nodejs24.x` so the build does not depend on the machine's Node version
+- [x] Database client tuned for serverless: small pool (`max: 3`) and `idle_timeout: 20` so many short-lived instances cannot exhaust Supabase's shared pooler
+- [x] Runbook rewritten for Supabase + Vercel: both pooler connection strings and why they differ, env vars, custom subdomain, and a final lock-down step that closes public signups
+
 ---
 
 ## In Progress
@@ -65,10 +71,10 @@ was submitted before Svelte flushed the bound state.
 
 ## Next
 
-1. Deva: review commits on `feat/post-mvp`, merge into `main`.
-2. Follow `docs/supabase-production-setup.md` to move onto a hosted Supabase project. Custom SMTP
-   (step 8) matters most — the built-in sender is too rate-limited for reset and magic-link email.
-3. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
+1. Deva: follow `docs/supabase-production-setup.md` end to end. Two steps carry the most risk of
+   being skipped: custom SMTP (step 8), without which reset and magic-link email quietly stops, and
+   closing signups (step 12), without which anyone who finds the URL can register.
+2. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
    the deterministic workflows have proven themselves in daily use.
 
 ---
@@ -78,6 +84,8 @@ was submitted before Svelte flushed the bound state.
 - Email confirmation on signup is disabled in the local Supabase config; hosted Supabase enables it by default (the signup page already handles the "check your email" state).
 - Hosted Supabase needs its own Site URL and redirect allow list — see `docs/supabase-production-setup.md` step 6. The values in `supabase/config.toml` apply to the local stack only.
 - Supabase's built-in email sender is rate-limited to a few messages per hour. Password reset and magic link need custom SMTP before daily use (runbook step 8).
+- Signups are open by default. Until runbook step 12 is done, anyone who finds the deployed URL can register an account (their data stays scoped to them, but the accounts are real).
+- Vercel preview deployments share the production database; there is no separate staging project.
 - Drag-and-drop reordering is pointer-only by design; the ▲▼ buttons carry keyboard and touch, and the grip is hidden where hover does not exist.
 
 ---
@@ -92,7 +100,7 @@ was submitted before Svelte flushed the bound state.
 - Database access belongs in repositories.
 - Feature-based architecture is preferred.
 - AI features are deferred until deterministic workflows are solid.
-- `@sveltejs/adapter-node` is used for production builds (portable; swap if a platform adapter is preferred).
+- `@sveltejs/adapter-vercel` is used for production builds, targeting Vercel serverless functions. The runtime is pinned in `vite.config.ts`.
 - Supabase Auth is used server-side only via `@supabase/ssr`; no browser Supabase client.
 - Styling uses plain CSS with design tokens (no utility framework) to keep dependencies minimal.
 - Unit tests target pure domain logic and run with `bun test`; framework behaviour is not tested.
@@ -103,5 +111,5 @@ was submitted before Svelte flushed the bound state.
 
 ## Last Updated
 
-2026-09-10 — Post-MVP milestone complete on `feat/post-mvp`: account recovery, manual task order,
-project archive, calendar week view and the hosted-Supabase runbook.
+2026-09-11 — Post-MVP merged into `main`. Repo prepared for Vercel on `chore/vercel-deploy`:
+adapter swap, serverless-safe database pooling, and a Supabase + Vercel runbook.

@@ -1,72 +1,90 @@
-# Moving Work OS onto a hosted Supabase project
+# Taking Work OS live: hosted Supabase + Vercel
 
-These are the steps only you can do — they need your Supabase account, a database password and
-your deployment host. Everything else is already in the repo.
+These are the steps only you can do — they need your Supabase account, your Vercel account, a
+database password and DNS access for `bagusdeva.com`. Everything in the repo is already prepared.
 
-Budget about 30 minutes. Work top to bottom; each step says how to tell it worked.
+Budget about an hour end to end. Work top to bottom; each step says how to tell it worked.
 
-> Supabase changes its dashboard wording from time to time. Where a label below does not match what
-> you see, look for the nearest equivalent in the same settings area — the concepts are stable even
-> when the words move.
+Two assumptions, both easy to change:
+
+- The app will live at **`work.bagusdeva.com`**. Substitute your own subdomain everywhere below.
+- Your Supabase region is **Singapore (`ap-southeast-1`)**, the closest to Bali.
+
+> Supabase and Vercel both reword their dashboards from time to time. Where a label does not match
+> what you see, look for the nearest equivalent in the same settings area — the concepts are stable
+> even when the words move.
 
 ---
 
-## 1. Create the project
+## 1. Create the Supabase project
 
 1. Go to <https://supabase.com/dashboard> and create a new project.
 2. **Name:** `work-os` (anything you like).
-3. **Region:** pick the one closest to you — Singapore (`ap-southeast-1`) is the nearest to Bali.
+3. **Region:** Singapore (`ap-southeast-1`).
 4. **Database password:** generate a strong one and **save it in your password manager now**.
-   Supabase shows it once. You will paste it into the connection string in step 2.
+   Supabase shows it once, and you need it in step 2.
 
 Wait for provisioning to finish (a minute or two).
 
 ---
 
-## 2. Copy the database connection string
+## 2. Copy the two connection strings
 
-1. Open **Project Settings → Database → Connection string**.
-2. Choose the **Session pooler** connection (port `5432`), URI format.
-3. Copy it. It looks like:
+Open **Project Settings → Database → Connection string**, URI format. You need **both** poolers,
+because the app and the migration tool want different things:
 
-   ```
-   postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
-   ```
+| Use                             | Which                  | Port   |
+| ------------------------------- | ---------------------- | ------ |
+| The app running on Vercel       | **Transaction pooler** | `6543` |
+| `bun run db:migrate`, local dev | **Session pooler**     | `5432` |
 
-4. Replace `[YOUR-PASSWORD]` with the password from step 1.
-   If the password contains `@ : / ? # [ ] %`, URL-encode those characters (e.g. `@` → `%40`).
+Copy both. They look like:
 
-**Why the session pooler:** it works over IPv4 without an add-on, and it supports both the app and
-`drizzle-kit` migrations from one string. The direct connection (`db.<ref>.supabase.co`) is
-IPv6-only on new projects unless you buy the IPv4 add-on. The transaction pooler (port `6543`) works
-for the running app — `src/lib/server/db/client.ts` already sets `prepare: false` for it — but can
-trip up migrations, so stick to the session pooler unless you have a reason not to.
+```
+# transaction pooler — for Vercel
+postgresql://postgres.<ref>:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
+
+# session pooler — for migrations and local dev
+postgresql://postgres.<ref>:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Replace `[PASSWORD]` with the password from step 1. If it contains `@ : / ? # [ ] %`, URL-encode
+those characters (`@` → `%40`). Keep `?sslmode=require` on the end of both — Supabase requires TLS,
+and without it the connection is refused.
+
+**Why two.** Vercel runs the app as serverless functions: many short-lived instances, each opening
+its own connections. The transaction pooler is built for exactly that and hands a connection back
+after every transaction — `src/lib/server/db/client.ts` already sets `prepare: false` and a small
+pool to suit it. That same pooler mangles the prepared statements and DDL that `drizzle-kit` uses,
+so migrations go through the session pooler instead. The direct connection
+(`db.<ref>.supabase.co`) is IPv6-only on new projects and Vercel cannot reach it at all.
 
 ---
 
 ## 3. Copy the API URL and key
 
 1. Open **Project Settings → API**.
-2. Copy the **Project URL** (`https://<project-ref>.supabase.co`).
-3. Copy the **anon / public** key. On newer projects this may be called the **publishable** key —
-   take that one. **Never** take the `service_role` / secret key: this app does not use it, and it
-   bypasses every access rule.
+2. Copy the **Project URL** (`https://<ref>.supabase.co`).
+3. Copy the **anon / public** key — on newer projects it may be called the **publishable** key.
+   **Never** take the `service_role` / secret key: this app does not use it, and it bypasses every
+   access rule in the database.
 
 ---
 
-## 4. Fill in `.env`
+## 4. Point your local `.env` at the hosted project
 
 Edit `.env` in the project root (it is gitignored — never commit it):
 
 ```sh
-DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
-SUPABASE_URL=https://<project-ref>.supabase.co
+DATABASE_URL=<the session pooler string from step 2>
+SUPABASE_URL=https://<ref>.supabase.co
 SUPABASE_ANON_KEY=<anon or publishable key>
 ```
 
-Keep a copy of the old local values somewhere if you still want to run against `supabase start`.
+Keep the old local values in a scratch file if you still want to run against `supabase start` —
+you will want them for development.
 
-**Check:** `bun run dev` starts without the "DATABASE_URL is not set" error.
+**Check:** `bun run dev` starts with no "DATABASE_URL is not set" error.
 
 ---
 
@@ -76,11 +94,11 @@ Keep a copy of the old local values somewhere if you still want to run against `
 bun run db:migrate
 ```
 
-This applies `drizzle/0000_initial_schema.sql` plus every later migration to the hosted database.
+This applies `drizzle/0000_initial_schema.sql` and every later migration to the hosted database.
 
-**Check:** in the dashboard, **Table Editor** shows the 12 tables (`companies`, `areas`, `projects`,
-`milestones`, `tasks`, `notes`, `resources`, `events`, `inbox_items`, `weekly_reviews`, `activities`,
-`users`).
+**Check:** the dashboard's **Table Editor** shows the 12 tables (`companies`, `areas`, `projects`,
+`milestones`, `tasks`, `notes`, `resources`, `events`, `inbox_items`, `weekly_reviews`,
+`activities`, `users`).
 
 ---
 
@@ -88,20 +106,21 @@ This applies `drizzle/0000_initial_schema.sql` plus every later migration to the
 
 Open **Authentication → URL Configuration**.
 
-1. **Site URL:** your real address — `https://work-os.yourdomain.com`.
-   While you are still testing locally, `http://localhost:5173` is fine.
-2. **Redirect URLs:** add every callback address the app uses. Sign-in links carry query strings
-   (`?code=…`, `?next=…`, `?type=recovery`), so include the wildcard forms:
+1. **Site URL:** `https://work.bagusdeva.com`
+2. **Redirect URLs:** sign-in links carry query strings (`?code=…`, `?next=…`, `?type=recovery`),
+   so add the wildcard forms too:
 
    ```
-   https://work-os.yourdomain.com/auth/callback
-   https://work-os.yourdomain.com/auth/callback?**
+   https://work.bagusdeva.com/auth/callback
+   https://work.bagusdeva.com/auth/callback?**
    http://localhost:5173/auth/callback
    http://localhost:5173/auth/callback?**
    ```
 
-**Check:** step 9 tests this. A wrong list shows up as a sign-in link dropping you on the site root
-or on `/login?error=auth` instead of signing you in.
+   Keep the `localhost` entries — they are what let you test auth locally.
+
+**Check:** step 11 exercises this. A wrong list shows up as a sign-in link dropping you on the site
+root or on `/login?error=auth` instead of signing you in.
 
 ---
 
@@ -109,85 +128,124 @@ or on `/login?error=auth` instead of signing you in.
 
 Open **Authentication → Sign In / Providers → Email**.
 
-1. **Confirm email:** ON. New signups then have to click a link before they can sign in — the signup
+1. **Confirm email:** ON. New signups then have to click a link before they can sign in; the signup
    page already renders the "check your email" state for this.
-2. **Minimum password length:** `8`, to match the Zod rule in
-   `src/lib/features/auth/auth.schema.ts`. (Leave it lower and Supabase will accept a password the
-   app's own form rejects.)
+2. **Minimum password length:** `8`, matching the Zod rule in
+   `src/lib/features/auth/auth.schema.ts`. Leave it lower and Supabase will accept a password the
+   app's own form rejects.
 
 ---
 
 ## 8. Set up real email delivery
 
-**Do this before you rely on password reset or magic links.** Supabase's built-in email sender is
-meant for testing only and is rate-limited to a handful of messages per hour, shared across your
-whole project. Reset and magic-link emails will silently stop arriving once you cross it.
+**Do this before you rely on password reset or magic links.** Supabase's built-in sender is for
+testing only and is rate-limited to a handful of messages per hour across the whole project. Reset
+and sign-in emails simply stop arriving once you cross it, with no error shown to you.
 
 Open **Project Settings → Authentication → SMTP Settings** and point it at a real provider — Resend,
 Postmark, Amazon SES and Mailgun all work. You will need:
 
-- SMTP host, port, username, password from the provider
-- a sender address on a domain you have verified with that provider
+- SMTP host, port, username and password from the provider
+- a sender address on a domain you have verified with them (`no-reply@bagusdeva.com` is natural,
+  since you already own the domain)
 
-**Check:** step 9 emails arrive within a few seconds, from your own sender address.
+**Check:** the emails in step 11 arrive within seconds, from your own sender address.
 
 ---
 
-## 9. Verify the whole flow
+## 9. Deploy to Vercel
 
-Run the app against the hosted project (`bun run dev`, or your deployment) and walk through:
+The repo is configured for Vercel: `@sveltejs/adapter-vercel`, runtime pinned to `nodejs24.x`.
 
-- [ ] **Sign up** with a real address → "check your email" screen → confirmation link signs you in.
-- [ ] **Sign out**, then **sign in** with the password.
+1. Go to <https://vercel.com/new> and import `Bagusdevaa/work-OS` from GitHub.
+2. **Framework preset:** SvelteKit (Vercel detects it). Leave the build and output settings alone.
+   Vercel sees `bun.lock` and installs with Bun; if it picked npm instead, set the install command
+   to `bun install`.
+3. **Environment variables** — add all three, for every environment (Production, Preview,
+   Development):
+
+   | Variable            | Value                                           |
+   | ------------------- | ----------------------------------------------- |
+   | `DATABASE_URL`      | the **transaction pooler** string (port `6543`) |
+   | `SUPABASE_URL`      | `https://<ref>.supabase.co`                     |
+   | `SUPABASE_ANON_KEY` | the anon / publishable key                      |
+
+   Note this is the _other_ connection string from the one in your local `.env`.
+
+4. Deploy.
+
+There is no `ORIGIN` variable to set — that was only needed by the Node adapter this project used
+before. Vercel handles it.
+
+**Check:** the deployment succeeds and the `*.vercel.app` URL shows the login page.
+
+**If you change an environment variable later, redeploy.** Vercel bakes them in at build time;
+editing a variable does nothing until the next deployment.
+
+---
+
+## 10. Attach the subdomain
+
+1. In the Vercel project: **Settings → Domains → Add**, enter `work.bagusdeva.com`.
+2. Vercel shows a DNS record to create — normally a **CNAME** for `work` pointing at
+   `cname.vercel-dns.com`. **Use whatever value Vercel shows you**, not the one written here.
+3. Add that record at whoever hosts DNS for `bagusdeva.com`.
+4. Wait for Vercel to report the domain as valid. DNS usually settles in minutes, occasionally an
+   hour. The TLS certificate is issued automatically once it does.
+
+**Check:** `https://work.bagusdeva.com` loads the login page over HTTPS.
+
+Now go back to **step 6** and confirm the Site URL and redirect URLs use this address.
+
+---
+
+## 11. Verify the whole thing
+
+On `https://work.bagusdeva.com`, walk through:
+
+- [ ] **Sign up** with your real address → "check your email" → the confirmation link signs you in.
+- [ ] **Sign out**, then **sign in** with your password.
 - [ ] **Forgot password** → the email arrives → the link opens `/reset-password` (not `/login`) →
-      set a new password → "Password updated".
-- [ ] **Sign in with the new password.**
+      set a new password → "Password updated" → sign in with it.
 - [ ] **Email me a sign-in link** on the login page → the link signs you in.
 - [ ] Create a company, a project and a task → reload → the data is still there.
-- [ ] **Table Editor → tasks** shows the row you just created.
+- [ ] Open the project, switch task order to **Manual**, drag a task and reload — the order held.
+- [ ] Complete a project, find it under **Archived**, restore it.
+- [ ] **Calendar → Week**, page back and forward, switch to Month.
+- [ ] Open the site on your phone — no sideways scrolling on any page.
+- [ ] Supabase **Table Editor → tasks** shows the row you created.
 
-If a link bounces you to `/login?error=auth`, the code exchange failed. The usual causes: the
-redirect URL is not on the allow list (step 6), the link was already used, or you opened it in a
-different browser from the one that requested it. Request a fresh link and open it in the same
-browser.
-
----
-
-## 10. Deploying
-
-The build uses `@sveltejs/adapter-node`:
-
-```sh
-bun run build
-node build          # serves on PORT, default 3000
-```
-
-On your host, set these environment variables:
-
-| Variable            | Value                                                      |
-| ------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`      | the session-pooler string from step 2                      |
-| `SUPABASE_URL`      | the project URL from step 3                                |
-| `SUPABASE_ANON_KEY` | the anon / publishable key from step 3                     |
-| `ORIGIN`            | `https://work-os.yourdomain.com` — your real public origin |
-| `PORT`              | whatever your host expects (often set for you)             |
-
-**`ORIGIN` is not optional.** Every screen in this app saves through SvelteKit form actions, and
-adapter-node rejects cross-site POSTs. Without a correct `ORIGIN` every save fails with
-`Cross-site POST form submissions are forbidden`, while the pages themselves still load — so the app
-looks fine until you try to change anything.
-
-Then go back to step 6 and make sure the Site URL and redirect URLs use the deployed address.
+If a link bounces you to `/login?error=auth`, the code exchange failed. Usual causes: the redirect
+URL is not on the allow list (step 6), the link was already used, or you opened it in a different
+browser from the one that requested it. Request a fresh link and open it in the same browser.
 
 ---
 
-## Notes
+## 12. Lock it down
 
-- `supabase/config.toml` configures the **local** stack only; the dashboard settings above are what
-  the hosted project uses. The two are kept deliberately similar so local behaviour matches
-  production — except `enable_confirmations`, which stays `false` locally so you are not chasing
-  confirmation emails during development.
-- To keep developing locally, keep the old local values and switch `.env` back; `supabase start`
-  still works exactly as before.
-- Migrations are forward-only. Generate new ones with `bun run db:generate` after changing the
-  schema, and apply them with `bun run db:migrate`.
+**Do this once your own account exists — it is the step that makes the app actually private.**
+
+Until now anyone who finds `work.bagusdeva.com` can register. Their data would be separate from
+yours (every query is scoped by `user_id`), but they would still have accounts on your app.
+
+Open **Authentication → Sign In / Providers → Email** and turn **Allow new users to sign up** OFF.
+
+**Check:** open `/signup` in a private window, try to register, and the attempt is refused. You can
+still sign in, reset your password and use magic links; only new registrations are blocked. Turn it
+back on for as long as it takes if you ever need another account.
+
+---
+
+## Afterwards
+
+- **Deployments are automatic.** Vercel builds every push to `main`, and gives every other branch a
+  preview URL. Preview deployments share the same database, so treat them as live data.
+- **Backups.** Supabase's free tier keeps only a short backup window. If this becomes where your
+  work lives, take your own dumps:
+  `pg_dump "<session pooler string>" -Fc -f work-os-$(date +%F).dump`
+- **Local development still works** — swap `.env` back to the `supabase start` values.
+- **Schema changes:** `bun run db:generate` after editing the schema, then `bun run db:migrate`
+  against the session pooler. Migrations are forward-only.
+- `supabase/config.toml` configures the **local** stack only. The dashboard settings above are what
+  the hosted project uses. The two are kept deliberately close, except `enable_confirmations`, which
+  stays off locally so you are not chasing confirmation emails while developing.
