@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import ListTodo from '@lucide/svelte/icons/list-todo';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -60,12 +61,14 @@
 		dropTargetId = task.id;
 	}
 
-	function drop(event: DragEvent, task: Task, index: number) {
+	async function drop(event: DragEvent, task: Task, index: number) {
 		if (!canDropOn(task)) return;
 		event.preventDefault();
 		movedId = draggingId;
 		movedTo = String(index);
 		endDrag();
+		// The hidden inputs are bound to state; without this the form would submit the old values.
+		await tick();
 		moveForm?.requestSubmit();
 	}
 </script>
