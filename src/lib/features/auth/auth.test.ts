@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { emailOnlySchema, newPasswordSchema } from './auth.schema';
-import { friendlyAuthMessage } from './auth.service';
+import { friendlyAuthMessage, isUnknownOtpRecipient } from './auth.service';
 
 describe('friendlyAuthMessage', () => {
 	test('maps known Supabase errors to human wording', () => {
@@ -27,6 +27,25 @@ describe('friendlyAuthMessage', () => {
 
 	test('falls back to a generic message', () => {
 		expect(friendlyAuthMessage('kaboom')).toBe('Something went wrong. Please try again.');
+	});
+});
+
+describe('isUnknownOtpRecipient', () => {
+	test('recognises the error Supabase returns for an address with no account', () => {
+		expect(
+			isUnknownOtpRecipient({ code: 'otp_disabled', message: 'Signups not allowed for otp' })
+		).toBe(true);
+	});
+
+	test('recognises it from the message alone when no code is present', () => {
+		expect(isUnknownOtpRecipient({ message: 'Signups not allowed for otp' })).toBe(true);
+	});
+
+	test('leaves real failures alone', () => {
+		expect(
+			isUnknownOtpRecipient({ code: 'over_email_send_rate_limit', message: 'rate limit' })
+		).toBe(false);
+		expect(isUnknownOtpRecipient({ message: 'Database error' })).toBe(false);
 	});
 });
 

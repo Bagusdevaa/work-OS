@@ -56,6 +56,14 @@ export async function sendPasswordReset(
 	return error ? { ok: false, message: friendlyAuthMessage(error.message) } : { ok: true };
 }
 
+/**
+ * Supabase refuses a one-time link for an address with no account. Reporting that back
+ * would tell an attacker which addresses are registered, so it is treated as success.
+ */
+export function isUnknownOtpRecipient(error: { code?: string; message: string }): boolean {
+	return error.code === 'otp_disabled' || /signups not allowed for otp/i.test(error.message);
+}
+
 /** Emails a one-time sign-in link. Never creates an account for an unknown address. */
 export async function sendMagicLink(
 	supabase: SupabaseClient,
@@ -66,7 +74,8 @@ export async function sendMagicLink(
 		email: input.email,
 		options: { emailRedirectTo, shouldCreateUser: false }
 	});
-	return error ? { ok: false, message: friendlyAuthMessage(error.message) } : { ok: true };
+	if (!error || isUnknownOtpRecipient(error)) return { ok: true };
+	return { ok: false, message: friendlyAuthMessage(error.message) };
 }
 
 /** Sets a new password for the session created by a recovery link. */
