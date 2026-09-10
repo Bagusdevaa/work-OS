@@ -3,6 +3,7 @@ import { db } from '$lib/server/db/client';
 import { companies, milestones, projects, tasks } from '$lib/server/db/schema';
 import type { ProjectStatus, TaskStatus } from '$lib/types/domain';
 import type { NewTask, Task, TaskWithContext } from './task.types';
+import type { SortOrderPatch } from './task.utils';
 
 export interface TaskFilter {
 	projectId?: string;
@@ -81,6 +82,19 @@ export async function updateTask(
 		.where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
 		.returning();
 	return row ?? null;
+}
+
+/** Rewrites the manual order of several tasks at once. */
+export async function updateTaskOrder(userId: string, patches: SortOrderPatch[]): Promise<void> {
+	if (patches.length === 0) return;
+	await db.transaction(async (tx) => {
+		for (const patch of patches) {
+			await tx
+				.update(tasks)
+				.set({ sortOrder: patch.sortOrder })
+				.where(and(eq(tasks.id, patch.id), eq(tasks.userId, userId)));
+		}
+	});
 }
 
 export async function deleteTask(userId: string, id: string): Promise<Task | null> {

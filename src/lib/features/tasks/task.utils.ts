@@ -17,11 +17,27 @@ interface Sortable extends DueFields {
 	createdAt: Date;
 }
 
+/** `smart` ranks by urgency; `manual` honours the order the user dragged tasks into. */
+export type TaskSortMode = 'smart' | 'manual';
+
 /**
- * Open tasks first (overdue → dated soonest → undated), then by priority,
- * manual order and creation time. Done tasks trail.
+ * Smart: open tasks first (overdue → dated soonest → undated), then by priority,
+ * manual order and creation time. Manual: the user's order alone.
+ * Done tasks trail in both modes.
  */
-export function sortTasks<T extends Sortable>(tasks: T[], today: string): T[] {
+export function sortTasks<T extends Sortable>(
+	tasks: T[],
+	today: string,
+	mode: TaskSortMode = 'smart'
+): T[] {
+	if (mode === 'manual') {
+		return [...tasks].sort(
+			(a, b) =>
+				Number(a.status === 'done') - Number(b.status === 'done') ||
+				a.sortOrder - b.sortOrder ||
+				a.createdAt.getTime() - b.createdAt.getTime()
+		);
+	}
 	return [...tasks].sort(
 		(a, b) =>
 			Number(a.status === 'done') - Number(b.status === 'done') ||
@@ -31,6 +47,54 @@ export function sortTasks<T extends Sortable>(tasks: T[], today: string): T[] {
 			a.sortOrder - b.sortOrder ||
 			a.createdAt.getTime() - b.createdAt.getTime()
 	);
+}
+
+interface Groupable {
+	id: string;
+	milestoneId: string | null;
+}
+
+export interface SortOrderPatch {
+	id: string;
+	sortOrder: number;
+}
+
+/**
+ * Moves one task to `toIndex` among the tasks sharing its milestone, leaving every
+ * other group's positions untouched. Returns the full id list in its new order.
+ */
+export function moveWithinGroup<T extends Groupable>(
+	items: T[],
+	taskId: string,
+	toIndex: number
+): string[] {
+	const ids = items.map((item) => item.id);
+	const moved = items.find((item) => item.id === taskId);
+	if (!moved) return ids;
+
+	const positions: number[] = [];
+	const groupIds: string[] = [];
+	items.forEach((item, index) => {
+		if (item.milestoneId === moved.milestoneId) {
+			positions.push(index);
+			groupIds.push(item.id);
+		}
+	});
+
+	const from = groupIds.indexOf(taskId);
+	const to = Math.min(Math.max(toIndex, 0), groupIds.length - 1);
+	if (from === to) return ids;
+
+	groupIds.splice(to, 0, ...groupIds.splice(from, 1));
+	positions.forEach((position, index) => {
+		ids[position] = groupIds[index];
+	});
+	return ids;
+}
+
+/** Numbers a list of ids from zero so the stored order matches what is displayed. */
+export function sortOrderPatches(ids: string[]): SortOrderPatch[] {
+	return ids.map((id, index) => ({ id, sortOrder: index }));
 }
 
 function compareDueDates(a: string | null, b: string | null): number {

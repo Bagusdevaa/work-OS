@@ -68,6 +68,52 @@ describe('sortTasks', () => {
 	});
 });
 
+describe('sortTasks in manual mode', () => {
+	const urgentSoon = {
+		id: 'urgent',
+		status: 'todo' as const,
+		...base,
+		priority: 'urgent' as const,
+		dueDate: '2026-09-01',
+		sortOrder: 2
+	};
+	const dragged = { id: 'dragged', status: 'todo' as const, ...base, sortOrder: 0 };
+	const middle = { id: 'middle', status: 'todo' as const, ...base, sortOrder: 1 };
+
+	test('honours the stored order instead of urgency', () => {
+		const sorted = sortTasks([urgentSoon, middle, dragged], today, 'manual');
+		expect(sorted.map((t) => t.id)).toEqual(['dragged', 'middle', 'urgent']);
+	});
+
+	test('still pushes done tasks to the end', () => {
+		const done = { id: 'done', status: 'done' as const, ...base, sortOrder: -1 };
+		const sorted = sortTasks([done, middle, dragged], today, 'manual');
+		expect(sorted.map((t) => t.id)).toEqual(['dragged', 'middle', 'done']);
+	});
+
+	test('breaks ties on creation time', () => {
+		const older = {
+			id: 'older',
+			status: 'todo' as const,
+			...base,
+			createdAt: new Date(2026, 7, 1)
+		};
+		const newer = {
+			id: 'newer',
+			status: 'todo' as const,
+			...base,
+			createdAt: new Date(2026, 8, 5)
+		};
+		const sorted = sortTasks([newer, older], today, 'manual');
+		expect(sorted.map((t) => t.id)).toEqual(['older', 'newer']);
+	});
+
+	test('defaults to smart ordering when no mode is given', () => {
+		const sorted = sortTasks([dragged, urgentSoon], today);
+		expect(sorted[0].id).toBe('urgent');
+	});
+});
+
 describe('groupTasksByMilestone', () => {
 	test('groups tasks under their milestone, keeping milestone order, unassigned last', () => {
 		const milestones = [

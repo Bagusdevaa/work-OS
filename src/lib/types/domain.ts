@@ -125,6 +125,9 @@ export const IN_FLIGHT_PROJECT_STATUSES: readonly ProjectStatus[] = [
 	'blocked'
 ];
 
+/** Project statuses that have left active rotation and live in the archive. */
+export const ARCHIVED_PROJECT_STATUSES: readonly ProjectStatus[] = ['completed', 'archived'];
+
 /** Task statuses that still need work. */
 export const OPEN_TASK_STATUSES: readonly TaskStatus[] = ['todo', 'in_progress', 'blocked'];
 

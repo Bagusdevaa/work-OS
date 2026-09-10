@@ -7,10 +7,35 @@ import { todayISO } from '$lib/utils/dates';
 import * as repo from './task.repository';
 import type { QuickTaskInput, TaskInput } from './task.schema';
 import type { Task, TaskWithContext } from './task.types';
-import { sortTasks } from './task.utils';
+import { moveWithinGroup, sortOrderPatches, sortTasks, type TaskSortMode } from './task.utils';
 
-export async function listTasksForProject(userId: string, projectId: string): Promise<Task[]> {
-	return sortTasks(await repo.findTasksByProject(userId, projectId), todayISO());
+export async function listTasksForProject(
+	userId: string,
+	projectId: string,
+	mode: TaskSortMode = 'smart'
+): Promise<Task[]> {
+	return sortTasks(await repo.findTasksByProject(userId, projectId), todayISO(), mode);
+}
+
+/**
+ * Moves a task to `toIndex` among the open tasks sharing its milestone.
+ * Deliberately not logged as project activity: reordering is not progress.
+ */
+export async function reorderTask(
+	userId: string,
+	projectId: string,
+	taskId: string,
+	toIndex: number
+): Promise<void> {
+	const project = await requireProject(userId, projectId);
+	const all = await repo.findTasksByProject(userId, project.id);
+	const open = sortTasks(
+		all.filter((task) => task.status !== 'done'),
+		todayISO(),
+		'manual'
+	);
+	if (!open.some((task) => task.id === taskId)) error(404, 'Task not found');
+	await repo.updateTaskOrder(userId, sortOrderPatches(moveWithinGroup(open, taskId, toIndex)));
 }
 
 export async function listTasks(

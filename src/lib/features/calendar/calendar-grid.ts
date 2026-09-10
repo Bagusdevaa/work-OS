@@ -54,6 +54,53 @@ export function buildMonthGrid(month: MonthKey, today: string): MonthGrid {
 	return { month, weeks, rangeStart, rangeEnd };
 }
 
+export interface WeekGrid {
+	/** The Monday the week starts on. */
+	weekStart: string;
+	days: GridDay[];
+	rangeStart: string;
+	rangeEnd: string;
+}
+
+export function currentWeek(today: string): string {
+	return startOfWeek(today);
+}
+
+export function shiftWeek(weekStart: string, delta: number): string {
+	return addDays(startOfWeek(weekStart), delta * 7);
+}
+
+/** A Monday-first week. Any date inside the week may be passed as the start. */
+export function buildWeekGrid(weekStart: string, today: string): WeekGrid {
+	const start = startOfWeek(weekStart);
+	const days: GridDay[] = [];
+	for (let i = 0; i < 7; i++) {
+		const date = addDays(start, i);
+		// Every day of a week view is "in" the view, unlike the padding days of a month grid.
+		days.push({ date, inMonth: true, isToday: date === today });
+	}
+	return { weekStart: start, days, rangeStart: start, rangeEnd: days[6].date };
+}
+
+const dayMonthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+/** "Sep 7 – 13, 2026", widening to months or years only when the week straddles them. */
+export function weekLabel(weekStart: string): string {
+	const start = startOfWeek(weekStart);
+	const end = addDays(start, 6);
+	const [startYear, endYear] = [start.slice(0, 4), end.slice(0, 4)];
+	const startDate = parseISODate(start);
+	const endDate = parseISODate(end);
+
+	if (startYear !== endYear) {
+		return `${dayMonthFormatter.format(startDate)}, ${startYear} – ${dayMonthFormatter.format(endDate)}, ${endYear}`;
+	}
+	if (start.slice(0, 7) !== end.slice(0, 7)) {
+		return `${dayMonthFormatter.format(startDate)} – ${dayMonthFormatter.format(endDate)}, ${endYear}`;
+	}
+	return `${dayMonthFormatter.format(startDate)} – ${endDate.getDate()}, ${endYear}`;
+}
+
 export function groupByDate<T extends { date: string }>(items: T[]): Map<string, T[]> {
 	const grouped = new Map<string, T[]>();
 	for (const item of items) {

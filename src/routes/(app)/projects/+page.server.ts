@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { listActiveCompanies } from '$lib/features/companies/company.service';
-import { listProjects } from '$lib/features/projects/project.service';
+import { countArchivedProjects, listProjects } from '$lib/features/projects/project.service';
 import { requireUser } from '$lib/server/auth/session';
 import { PROJECT_STATUSES, type ProjectStatus } from '$lib/types/domain';
 
@@ -17,13 +17,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const companyId = url.searchParams.get('company') ?? '';
 	const view = url.searchParams.get('view') ?? 'open';
 
-	const [projects, companies] = await Promise.all([
+	const [projects, companies, archivedCount] = await Promise.all([
 		listProjects(user.id, {
 			companyId: companyId || undefined,
 			statuses: statusesForView(view)
 		}),
-		listActiveCompanies(user.id)
+		listActiveCompanies(user.id),
+		countArchivedProjects(user.id)
 	]);
 
-	return { projects, companies, companyId, view };
+	return { projects, companies, companyId, view, archivedCount };
 };

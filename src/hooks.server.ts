@@ -27,6 +27,9 @@ const supabase: Handle = async ({ event, resolve }) => {
 	});
 };
 
+/** Reachable while signed in: a recovery link signs the user in before they pick a password. */
+const AUTH_ROUTES_ALLOWED_WITH_SESSION = new Set(['/(auth)/reset-password']);
+
 const authGuard: Handle = async ({ event, resolve }) => {
 	const { session, authUser } = await event.locals.safeGetSession();
 	event.locals.session = session;
@@ -41,7 +44,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	if (isAuthPage) redirect(303, '/');
+	if (isAuthPage && !AUTH_ROUTES_ALLOWED_WITH_SESSION.has(routeId)) redirect(303, '/');
 
 	event.locals.user =
 		(await findUserById(authUser.id)) ??
