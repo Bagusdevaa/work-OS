@@ -12,6 +12,7 @@
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import TaskList from '$lib/features/tasks/components/TaskList.svelte';
 	import TaskQuickAdd from '$lib/features/tasks/components/TaskQuickAdd.svelte';
+	import TaskSortToggle from '$lib/features/tasks/components/TaskSortToggle.svelte';
 	import { calculateTaskProgress } from '$lib/features/tasks/task.utils';
 	import NoteList from '$lib/features/notes/components/NoteList.svelte';
 	import HealthBadge from '$lib/features/projects/components/HealthBadge.svelte';
@@ -112,7 +113,17 @@
 
 		<Card>
 			<Section title="Tasks" meta={data.tasks.length ? `${openTasks} open` : undefined}>
-				<TaskList tasks={data.tasks} milestones={data.milestones} {today} />
+				{#snippet actions()}
+					{#if openTasks > 1}
+						<TaskSortToggle mode={data.sort} base="/projects/{data.project.id}" />
+					{/if}
+				{/snippet}
+				<TaskList
+					tasks={data.tasks}
+					milestones={data.milestones}
+					{today}
+					reorderable={data.sort === 'manual'}
+				/>
 				<TaskQuickAdd
 					milestones={data.milestones}
 					values={form?.taskValues}

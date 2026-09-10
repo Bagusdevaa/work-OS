@@ -26,30 +26,38 @@ import {
 	deleteResource,
 	listResourcesForProject
 } from '$lib/features/resources/resource.service';
-import { quickTaskSchema, taskIdSchema, taskStatusSchema } from '$lib/features/tasks/task.schema';
+import {
+	quickTaskSchema,
+	taskIdSchema,
+	taskMoveSchema,
+	taskStatusSchema
+} from '$lib/features/tasks/task.schema';
 import {
 	createTask,
 	deleteTask,
 	listTasksForProject,
+	reorderTask,
 	setTaskStatus,
 	validateTaskRefs
 } from '$lib/features/tasks/task.service';
+import type { TaskSortMode } from '$lib/features/tasks/task.utils';
 import { calculateProjectHealth } from '$lib/features/projects/project-health';
 import { requireUser } from '$lib/server/auth/session';
 import { formDataToValues, parseForm } from '$lib/server/forms';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const user = requireUser(locals);
 	const project = await requireProject(user.id, params.id);
+	const sort: TaskSortMode = url.searchParams.get('sort') === 'manual' ? 'manual' : 'smart';
 	const [milestones, tasks, notes, resources, activity] = await Promise.all([
 		listMilestonesForProject(user.id, project.id),
-		listTasksForProject(user.id, project.id),
+		listTasksForProject(user.id, project.id, sort),
 		listNotesForProject(user.id, project.id),
 		listResourcesForProject(user.id, project.id),
 		listRecentActivity(user.id, { projectId: project.id, limit: 12 })
 	]);
 	const health = calculateProjectHealth({ ...project, tasks, milestones }, new Date());
-	return { project, health, milestones, tasks, notes, resources, activity };
+	return { project, health, milestones, tasks, notes, resources, activity, sort };
 };
 
 export const actions: Actions = {
@@ -113,6 +121,14 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { taskErrors: parsed.errors });
 		await setTaskStatus(user.id, parsed.data.taskId, parsed.data.status);
 		return { taskUpdated: true };
+	},
+
+	moveTask: async ({ request, locals, params }) => {
+		const user = requireUser(locals);
+		const parsed = parseForm(await request.formData(), taskMoveSchema);
+		if (!parsed.ok) return fail(400, { taskError: parsed.errors.toIndex });
+		await reorderTask(user.id, params.id, parsed.data.taskId, parsed.data.toIndex);
+		return { taskMoved: true };
 	},
 
 	deleteTask: async ({ request, locals }) => {

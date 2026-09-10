@@ -36,3 +36,9 @@ export const taskStatusSchema = z.object({
 });
 
 export const taskIdSchema = z.object({ taskId: requiredUuid() });
+
+/** Drag-and-drop / keyboard reordering: move a task to a position in its group. */
+export const taskMoveSchema = z.object({
+	taskId: requiredUuid(),
+	toIndex: z.coerce.number({ error: 'Invalid position' }).int().min(0).max(999)
+});
