@@ -168,7 +168,15 @@ Postmark, Amazon SES and Mailgun all work. You will need:
 
 ## 9. Deploy to Vercel
 
-The repo is configured for Vercel: `@sveltejs/adapter-vercel`, runtime pinned to `nodejs24.x`.
+The repo is configured for Vercel: `@sveltejs/adapter-vercel`, runtime pinned to `nodejs24.x`, and
+**functions pinned to `sin1` (Singapore) so they sit beside the database**.
+
+> **The function region must match the Supabase region.** Vercel defaults new projects to `iad1`
+> (Washington DC). With the database in Singapore that puts a Pacific round-trip — roughly 230 ms —
+> on every query, and a page runs several, so navigation drags for one to two seconds. If you ever
+> move the Supabase project to another region, change `regions` in `vite.config.ts` to match.
+> You can confirm which region served a request from the response header: `x-vercel-id:
+<edge>::<compute>::<id>` — the second segment is where the function ran.
 
 1. Go to <https://vercel.com/new> and import `Bagusdevaa/work-OS` from GitHub.
 2. **Framework preset:** SvelteKit (Vercel detects it). Leave the build and output settings alone.
