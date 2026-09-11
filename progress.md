@@ -113,6 +113,28 @@ was submitted before Svelte flushed the bound state.
 
 ---
 
+## Performance notes (measured 2026-09-11)
+
+Navigation felt slow (1–2 s per page). Two causes, in order of size:
+
+1. **Functions ran in `iad1` while the database sits in `ap-southeast-1`** — a Pacific round-trip
+   (~230 ms) on every query, several per page. Fixed by pinning `regions: ['sin1']`.
+2. **Cold starts.** Measured against `/login`, which touches no database: first request 750 ms,
+   settling to ~150 ms by the sixth. So a cold instance costs roughly 350–600 ms. Five parallel
+   requests against warm instances all returned in 156–335 ms.
+
+What was ruled out with evidence, not assumption: Postgres logged zero errors over 24 hours and the
+performance advisors reported only INFO-level items; Supabase Auth answers `/user` in 2–5 ms. The
+database was never the bottleneck, despite the "unresponsive project" reading in the uptime panel.
+
+Warm responses land around 150 ms from Bali, which is close to the floor for TLS plus a server
+render in Singapore. The remaining lever is Vercel's Fluid Compute, which keeps instances alive and
+lets one serve concurrent requests. `vercel.json` declares `"fluid": true`, but the deployment API
+still reports `"type": "LAMBDAS"`, so that has not been confirmed to take effect — check
+**Settings → Functions → Fluid Compute** in the Vercel dashboard.
+
+---
+
 ## Known Issues
 
 - Email confirmation on signup is disabled in the local Supabase config; hosted Supabase enables it by default (the signup page already handles the "check your email" state).
@@ -137,7 +159,7 @@ was submitted before Svelte flushed the bound state.
 - Feature-based architecture is preferred.
 - AI features are deferred until deterministic workflows are solid.
 - `@sveltejs/adapter-vercel` is used for production builds, targeting Vercel serverless functions. The runtime and the region are pinned in `vite.config.ts`; the region must track wherever the Supabase project lives.
-- Link preloading stays at SvelteKit's `hover` default (`src/app.html`). It costs one speculative data load per hovered link, which is worth it now that the function and database share a region; `tap` is the cheaper setting if that ever changes.
+- Link preloading is set to `tap` rather than SvelteKit's `hover` default (`src/app.html`). Each speculative load is a full server render with its own queries, and on serverless several concurrent ones wake several cold instances, so hovering across the sidebar used to queue work ahead of the click the user actually made.
 - Supabase Auth is used server-side only via `@supabase/ssr`; no browser Supabase client.
 - Styling uses plain CSS with design tokens (no utility framework) to keep dependencies minimal.
 - Unit tests target pure domain logic and run with `bun test`; framework behaviour is not tested.
