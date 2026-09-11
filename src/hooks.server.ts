@@ -65,8 +65,10 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 	if (isAuthPage && !AUTH_ROUTES_ALLOWED_WITH_SESSION.has(routeId)) redirect(303, '/');
 
-	// A bare round trip on the same pool: separates connection setup from real query work.
+	// Two bare round trips back to back. The first pays for opening a pooled connection, the
+	// second reuses it — so the gap between them separates setup cost from steady-state latency.
 	await timed(event.locals.timings, 'dbprobe', () => db.execute(sql`select 1`));
+	await timed(event.locals.timings, 'dbprobe2', () => db.execute(sql`select 1`));
 
 	event.locals.user = await timed(
 		event.locals.timings,
@@ -106,7 +108,17 @@ function withTimings(
 	response.headers.set('server-timing', parts.join(', '));
 	// Which region actually executed this request, straight from the runtime.
 	response.headers.set('x-debug-region', process.env.VERCEL_REGION ?? 'unknown');
+	response.headers.set('x-debug-db', databaseHost());
 	return response;
+}
+
+/** Host and port of the database connection — no credentials — to confirm which pooler is in use. */
+function databaseHost(): string {
+	try {
+		return new URL(process.env.DATABASE_URL ?? '').host || 'unset';
+	} catch {
+		return 'unparseable';
+	}
 }
 
 function readDisplayName(metadata: Record<string, unknown> | undefined): string | null {
