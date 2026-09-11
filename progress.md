@@ -117,21 +117,44 @@ was submitted before Svelte flushed the bound state.
 
 Navigation felt slow (1–2 s per page). Two causes, in order of size:
 
-1. **Functions ran in `iad1` while the database sits in `ap-southeast-1`** — a Pacific round-trip
-   (~230 ms) on every query, several per page. Fixed by pinning `regions: ['sin1']`.
+1. **Functions ran nowhere near the database.** Vercel defaulted to `iad1` (Washington DC) while
+   the Supabase project lives in `ap-northeast-1` (Tokyo). The first correction moved functions to
+   `sin1` on a wrong inference — the Supabase API _answers_ from Bali in single-digit milliseconds
+   because Cloudflare terminates TLS at a nearby edge, which says nothing about where the database
+   is. The pooler hostname in `DATABASE_URL` is the authority, and it reads `ap-northeast-1`, so
+   functions are now pinned to `hnd1`. Both sides are reported on every response (`x-debug-region`,
+   `x-debug-db`) so the pair can be checked at a glance rather than inferred.
 2. **Cold starts.** Measured against `/login`, which touches no database: first request 750 ms,
    settling to ~150 ms by the sixth. So a cold instance costs roughly 350–600 ms. Five parallel
    requests against warm instances all returned in 156–335 ms.
+
+Per-phase timings from the deployed app (`Server-Timing`, measured while functions were still in
+Singapore and the database in Tokyo) showed where the time actually went:
+
+| Phase     | ms  | What it is                           |
+| --------- | --- | ------------------------------------ |
+| `sess`    | 2   | reading the session cookie — free    |
+| `getuser` | 120 | one HTTPS call to Supabase Auth      |
+| `dbprobe` | 72  | a bare `select 1`                    |
+| `dbuser`  | 144 | one indexed row from a one-row table |
+| `load`    | 535 | the page's own queries and render    |
+
+`select 1` costing 72 ms is the tell: Singapore→Tokyo is roughly that, and no amount of query tuning
+touches it. The work was never the problem — the round trips were.
 
 What was ruled out with evidence, not assumption: Postgres logged zero errors over 24 hours and the
 performance advisors reported only INFO-level items; Supabase Auth answers `/user` in 2–5 ms. The
 database was never the bottleneck, despite the "unresponsive project" reading in the uptime panel.
 
-Warm responses land around 150 ms from Bali, which is close to the floor for TLS plus a server
-render in Singapore. The remaining lever is Vercel's Fluid Compute, which keeps instances alive and
-lets one serve concurrent requests. `vercel.json` declares `"fluid": true`, but the deployment API
-still reports `"type": "LAMBDAS"`, so that has not been confirmed to take effect — check
-**Settings → Functions → Fluid Compute** in the Vercel dashboard.
+Fluid Compute is enabled on the project, and the connection pool is sized for it (`max: 10`,
+`idle_timeout: 300`) so connections survive the gaps between navigations instead of being rebuilt.
+
+Still open: `DATABASE_URL` points at the **session** pooler (port 5432) rather than the transaction
+pooler (6543) the runbook recommends. It works, but session mode holds a real Postgres connection
+per client connection, which scales worse. Worth switching if connection limits ever bite.
+
+The `Server-Timing` and `x-debug-*` headers are deliberately left in place — they turned this from
+guesswork into arithmetic, and cost nothing.
 
 ---
 
