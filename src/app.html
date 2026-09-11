@@ -6,7 +6,12 @@
 		<meta name="theme-color" content="#f4f6fb" />
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover">
+	<!--
+	"tap" rather than the "hover" default: every speculative load is a full server render
+	with its own database queries, and on serverless each concurrent one can wake a separate
+	cold instance. Preloading on pointer-down still lands ahead of the navigation.
+-->
+	<body data-sveltekit-preload-data="tap">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
