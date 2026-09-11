@@ -10,8 +10,13 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			// Pinned so the build does not depend on whatever Node the machine happens to run.
-			adapter: adapter({ runtime: 'nodejs24.x' }),
+			adapter: adapter({
+				// Pinned so the build does not depend on whatever Node the machine happens to run.
+				runtime: 'nodejs24.x',
+				// Must sit beside the Supabase project (ap-southeast-1). Vercel otherwise defaults to
+				// iad1, putting every query a Pacific round-trip away from the database.
+				regions: ['sin1']
+			}),
 			typescript: {
 				config: (config) => {
 					config.include.push('../drizzle.config.ts');
