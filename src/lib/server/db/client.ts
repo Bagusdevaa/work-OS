@@ -9,17 +9,14 @@ const client = postgres(env.DATABASE_URL, {
 	// Required by Supabase's transaction-mode pooler, and harmless anywhere else.
 	prepare: false,
 	/*
-	 * Sized for Vercel's fluid compute: a few long-lived instances each serving concurrent
-	 * requests, rather than one instance per request. A page fires up to five queries at once,
-	 * so a pool of three made them queue.
+	 * Deliberately small. DATABASE_URL points at Supabase's *session* pooler, which allots each
+	 * project only a handful of client connections; asking for ten made the pooler refuse the
+	 * extras, and the dashboard — which fires five queries at once — failed on the fifth.
+	 * Raising this is only safe on the transaction pooler (port 6543).
 	 */
-	max: 10,
-	/*
-	 * Opening a pooled connection costs a TCP and TLS handshake — far more than the queries
-	 * themselves, which Postgres answers in single-digit milliseconds. Holding connections
-	 * through the gaps between navigations is the difference between a warm and a cold page.
-	 */
-	idle_timeout: 300,
+	max: 3,
+	// Queries now run beside the database, so rebuilding a connection is cheap enough to let go.
+	idle_timeout: 20,
 	connect_timeout: 10
 });
 
