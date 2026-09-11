@@ -146,12 +146,33 @@ What was ruled out with evidence, not assumption: Postgres logged zero errors ov
 performance advisors reported only INFO-level items; Supabase Auth answers `/user` in 2–5 ms. The
 database was never the bottleneck, despite the "unresponsive project" reading in the uptime panel.
 
-Fluid Compute is enabled on the project, and the connection pool is sized for it (`max: 10`,
-`idle_timeout: 300`) so connections survive the gaps between navigations instead of being rebuilt.
+After both sides were pinned to Tokyo, the same page measured:
 
-Still open: `DATABASE_URL` points at the **session** pooler (port 5432) rather than the transaction
-pooler (6543) the runbook recommends. It works, but session mode holds a real Postgres connection
-per client connection, which scales worse. Worth switching if connection limits ever bite.
+| Phase                  | Before     | After      |
+| ---------------------- | ---------- | ---------- |
+| `getuser`              | 120 ms     | 47 ms      |
+| `dbprobe` (`select 1`) | 72 ms      | 5 ms       |
+| `dbuser`               | 144 ms     | 7 ms       |
+| `load`                 | 535 ms     | 28 ms      |
+| **server total**       | **871 ms** | **~92 ms** |
+
+Two back-to-back `select 1` probes both cost 5 ms, which ruled out connection setup as a remaining
+factor — every database round trip is simply cheap now. The probes were removed afterwards; they
+were two extra round trips on every authenticated request.
+
+### Incident: dashboard 500s, 2026-09-11
+
+Raising the pool to `max: 10` (with `idle_timeout: 300`) to "hold connections open" broke the
+dashboard. `DATABASE_URL` points at Supabase's **session** pooler (port 5432), which allots a
+project only a handful of client connections; postgres-js opened one per concurrent query, the
+pooler refused the extras, and `buildDashboard` — which runs five queries in one `Promise.all` —
+failed on the fifth every time. Postgres itself logged nothing, because the queries never reached
+it. Reverted to `max: 3`, `idle_timeout: 20`, which had never erred.
+
+The lesson: pool size is bounded by the pooler's allowance, not by what the instance can afford.
+Raising it is only safe on the **transaction** pooler (port 6543), which multiplexes many client
+connections onto few Postgres backends. Switching `DATABASE_URL` to port 6543 is the proper fix and
+would also remove the ceiling that caused this — the app already sets `prepare: false` for it.
 
 The `Server-Timing` and `x-debug-*` headers are deliberately left in place — they turned this from
 guesswork into arithmetic, and cost nothing.
@@ -165,6 +186,8 @@ guesswork into arithmetic, and cost nothing.
 - Supabase's built-in email sender is rate-limited to a few messages per hour. Password reset and magic link need custom SMTP before daily use (runbook step 8).
 - Signups are open by default. Until runbook step 12 is done, anyone who finds the deployed URL can register an account (their data stays scoped to them, but the accounts are real).
 - Vercel preview deployments share the production database; there is no separate staging project.
+- `DATABASE_URL` uses the session pooler (5432), not the transaction pooler (6543) the runbook recommends. This caps how many connections the app may open; see the incident note above.
+- Responses carry `Server-Timing` plus `x-debug-region` and `x-debug-db` headers. They cost nothing and turned a day of guessing into arithmetic, but they do expose which region and pooler the app dials — remove them if that ever matters.
 - `drizzle.__drizzle_migrations` has RLS disabled. The `drizzle` schema is not exposed through PostgREST so it is not reachable with the anon key, but `ALTER TABLE "drizzle"."__drizzle_migrations" ENABLE ROW LEVEL SECURITY;` would close it off entirely; the app and drizzle-kit connect as the table owner and are unaffected.
 - Supabase's own `public.rls_auto_enable()` is a `SECURITY DEFINER` function callable via RPC, which the security advisor flags. It is platform-managed, only does work inside a DDL event trigger, and is what enabled RLS on our tables — left alone deliberately.
 - Drag-and-drop reordering is pointer-only by design; the ▲▼ buttons carry keyboard and touch, and the grip is hidden where hover does not exist.
