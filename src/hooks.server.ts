@@ -31,7 +31,9 @@ const supabase: Handle = async ({ event, resolve }) => {
 const AUTH_ROUTES_ALLOWED_WITH_SESSION = new Set(['/(auth)/reset-password']);
 
 const authGuard: Handle = async ({ event, resolve }) => {
+	const started = performance.now();
 	const { session, authUser } = await event.locals.safeGetSession();
+	const afterAuth = performance.now();
 	event.locals.session = session;
 	event.locals.user = null;
 
@@ -41,7 +43,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 	if (!session || !authUser) {
 		if (isAppRoute) redirect(303, `/login?next=${encodeURIComponent(event.url.pathname)}`);
-		return resolve(event);
+		return withTimings(await resolve(event), afterAuth - started, 0, performance.now());
 	}
 
 	if (isAuthPage && !AUTH_ROUTES_ALLOWED_WITH_SESSION.has(routeId)) redirect(303, '/');
@@ -53,9 +55,25 @@ const authGuard: Handle = async ({ event, resolve }) => {
 			email: authUser.email ?? `${authUser.id}@unknown.local`,
 			displayName: readDisplayName(authUser.user_metadata)
 		}));
+	const afterUser = performance.now();
 
-	return resolve(event);
+	const response = await resolve(event);
+	return withTimings(response, afterAuth - started, afterUser - afterAuth, afterUser);
 };
+
+/**
+ * Reports where a request's time went, readable in the browser's network panel.
+ * `auth` validates the session with Supabase, `user` loads the app user row, `load` is the
+ * page's own queries and render — each a separate round trip worth telling apart.
+ */
+function withTimings(response: Response, auth: number, user: number, loadStart: number): Response {
+	const load = performance.now() - loadStart;
+	response.headers.set(
+		'server-timing',
+		`auth;dur=${auth.toFixed(0)}, user;dur=${user.toFixed(0)}, load;dur=${load.toFixed(0)}`
+	);
+	return response;
+}
 
 function readDisplayName(metadata: Record<string, unknown> | undefined): string | null {
 	const value = metadata?.display_name;
