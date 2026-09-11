@@ -1,9 +1,7 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { sql } from 'drizzle-orm';
 import { ensureUser, findUserById } from '$lib/features/users/user.repository';
 import { createSupabaseServerClient } from '$lib/server/auth/supabase';
-import { db } from '$lib/server/db/client';
 
 /** Times an awaited step and records it under `label`. */
 async function timed<T>(
@@ -64,11 +62,6 @@ const authGuard: Handle = async ({ event, resolve }) => {
 	}
 
 	if (isAuthPage && !AUTH_ROUTES_ALLOWED_WITH_SESSION.has(routeId)) redirect(303, '/');
-
-	// Two bare round trips back to back. The first pays for opening a pooled connection, the
-	// second reuses it — so the gap between them separates setup cost from steady-state latency.
-	await timed(event.locals.timings, 'dbprobe', () => db.execute(sql`select 1`));
-	await timed(event.locals.timings, 'dbprobe2', () => db.execute(sql`select 1`));
 
 	event.locals.user = await timed(
 		event.locals.timings,
