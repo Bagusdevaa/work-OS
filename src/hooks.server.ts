@@ -1,22 +1,39 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { sql } from 'drizzle-orm';
 import { ensureUser, findUserById } from '$lib/features/users/user.repository';
 import { createSupabaseServerClient } from '$lib/server/auth/supabase';
+import { db } from '$lib/server/db/client';
+
+/** Times an awaited step and records it under `label`. */
+async function timed<T>(
+	timings: Record<string, number>,
+	label: string,
+	work: () => Promise<T>
+): Promise<T> {
+	const started = performance.now();
+	try {
+		return await work();
+	} finally {
+		timings[label] = performance.now() - started;
+	}
+}
 
 const supabase: Handle = async ({ event, resolve }) => {
 	event.locals.supabase = createSupabaseServerClient(event);
+	event.locals.timings = {};
 
 	event.locals.safeGetSession = async () => {
 		const {
 			data: { session }
-		} = await event.locals.supabase.auth.getSession();
+		} = await timed(event.locals.timings, 'sess', () => event.locals.supabase.auth.getSession());
 		if (!session) return { session: null, authUser: null };
 
 		// getUser() validates the JWT with the auth server; the cookie alone is not trusted.
 		const {
 			data: { user },
 			error
-		} = await event.locals.supabase.auth.getUser();
+		} = await timed(event.locals.timings, 'getuser', () => event.locals.supabase.auth.getUser());
 		if (error || !user) return { session: null, authUser: null };
 		return { session, authUser: user };
 	};
@@ -43,22 +60,29 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 	if (!session || !authUser) {
 		if (isAppRoute) redirect(303, `/login?next=${encodeURIComponent(event.url.pathname)}`);
-		return withTimings(await resolve(event), afterAuth - started, 0, performance.now());
+		return withTimings(event, await resolve(event), afterAuth - started, 0, performance.now());
 	}
 
 	if (isAuthPage && !AUTH_ROUTES_ALLOWED_WITH_SESSION.has(routeId)) redirect(303, '/');
 
-	event.locals.user =
-		(await findUserById(authUser.id)) ??
-		(await ensureUser({
-			id: authUser.id,
-			email: authUser.email ?? `${authUser.id}@unknown.local`,
-			displayName: readDisplayName(authUser.user_metadata)
-		}));
+	// A bare round trip on the same pool: separates connection setup from real query work.
+	await timed(event.locals.timings, 'dbprobe', () => db.execute(sql`select 1`));
+
+	event.locals.user = await timed(
+		event.locals.timings,
+		'dbuser',
+		async () =>
+			(await findUserById(authUser.id)) ??
+			(await ensureUser({
+				id: authUser.id,
+				email: authUser.email ?? `${authUser.id}@unknown.local`,
+				displayName: readDisplayName(authUser.user_metadata)
+			}))
+	);
 	const afterUser = performance.now();
 
 	const response = await resolve(event);
-	return withTimings(response, afterAuth - started, afterUser - afterAuth, afterUser);
+	return withTimings(event, response, afterAuth - started, afterUser - afterAuth, afterUser);
 };
 
 /**
@@ -66,12 +90,22 @@ const authGuard: Handle = async ({ event, resolve }) => {
  * `auth` validates the session with Supabase, `user` loads the app user row, `load` is the
  * page's own queries and render — each a separate round trip worth telling apart.
  */
-function withTimings(response: Response, auth: number, user: number, loadStart: number): Response {
-	const load = performance.now() - loadStart;
-	response.headers.set(
-		'server-timing',
-		`auth;dur=${auth.toFixed(0)}, user;dur=${user.toFixed(0)}, load;dur=${load.toFixed(0)}`
-	);
+function withTimings(
+	event: Parameters<Handle>[0]['event'],
+	response: Response,
+	auth: number,
+	user: number,
+	loadStart: number
+): Response {
+	const parts = [
+		`auth;dur=${auth.toFixed(0)}`,
+		`user;dur=${user.toFixed(0)}`,
+		`load;dur=${(performance.now() - loadStart).toFixed(0)}`,
+		...Object.entries(event.locals.timings).map(([k, v]) => `${k};dur=${v.toFixed(0)}`)
+	];
+	response.headers.set('server-timing', parts.join(', '));
+	// Which region actually executed this request, straight from the runtime.
+	response.headers.set('x-debug-region', process.env.VERCEL_REGION ?? 'unknown');
 	return response;
 }
 
