@@ -10,6 +10,8 @@ declare global {
 			session: Session | null;
 			/** The application user row for the authenticated user, if any. */
 			user: AppUser | null;
+			/** Milliseconds spent per phase, reported back as a Server-Timing header. */
+			timings: Record<string, number>;
 		}
 		interface PageData {
 			user?: AppUser | null;
