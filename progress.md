@@ -71,6 +71,10 @@ Nothing in the repo. Deployment state as of 2026-09-11:
   arrived at a Gmail address), so custom SMTP is a robustness step rather than a blocker — it stays
   rate-limited to a handful of messages per hour.
 - The custom domain `https://work.bagusdeva.com` serves the app over HTTPS.
+- Serverless functions are pinned to `sin1` to sit beside the Supabase project in `ap-southeast-1`.
+  They first deployed to Vercel's default `iad1`, which put a Pacific round-trip on every query and
+  made navigation take one to two seconds; the database itself was never the problem (no Postgres
+  errors, only INFO-level advisories).
 - The schema was applied to the hosted project through the Supabase MCP, then verified against the
   local database: column, constraint and index fingerprints all match (123 columns, identical MD5s).
   Drizzle's journal row was written with the same sha256 the migrator computes, so a later
@@ -132,7 +136,8 @@ was submitted before Svelte flushed the bound state.
 - Database access belongs in repositories.
 - Feature-based architecture is preferred.
 - AI features are deferred until deterministic workflows are solid.
-- `@sveltejs/adapter-vercel` is used for production builds, targeting Vercel serverless functions. The runtime is pinned in `vite.config.ts`.
+- `@sveltejs/adapter-vercel` is used for production builds, targeting Vercel serverless functions. The runtime and the region are pinned in `vite.config.ts`; the region must track wherever the Supabase project lives.
+- Link preloading stays at SvelteKit's `hover` default (`src/app.html`). It costs one speculative data load per hovered link, which is worth it now that the function and database share a region; `tap` is the cheaper setting if that ever changes.
 - Supabase Auth is used server-side only via `@supabase/ssr`; no browser Supabase client.
 - Styling uses plain CSS with design tokens (no utility framework) to keep dependencies minimal.
 - Unit tests target pure domain logic and run with `bun test`; framework behaviour is not tested.
