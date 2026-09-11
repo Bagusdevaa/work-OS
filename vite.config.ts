@@ -13,9 +13,12 @@ export default defineConfig({
 			adapter: adapter({
 				// Pinned so the build does not depend on whatever Node the machine happens to run.
 				runtime: 'nodejs24.x',
-				// Must sit beside the Supabase project (ap-southeast-1). Vercel otherwise defaults to
-				// iad1, putting every query a Pacific round-trip away from the database.
-				regions: ['sin1']
+				// Must sit beside the Supabase project, which lives in ap-northeast-1 (Tokyo);
+				// hnd1 is Vercel's Tokyo region. Confirm with the `x-debug-db` header, which
+				// reports the pooler host the app actually dials — guessing the region from
+				// how close the Supabase API *feels* is wrong, because Cloudflare terminates
+				// TLS at an edge near the client, not at the database.
+				regions: ['hnd1']
 			}),
 			typescript: {
 				config: (config) => {
