@@ -2,8 +2,7 @@
 
 ## Current Milestone
 
-Deployment — hosted Supabase + Vercel. Repo side complete and merged; the app builds and serves on
-Vercel with the schema in place. What remains is dashboard-only configuration (see Next).
+Retired. Archived: Personal Work OS now lives in HQ's Work module, `https://hq.bagusdeva.com/work` (repo `Bagusdevaa/hq`). This repo is kept read-only for reference.
 
 Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2026-09-10)
 

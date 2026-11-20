@@ -1,5 +1,7 @@
 # Personal Work OS
 
+Archived: Personal Work OS now lives in HQ's Work module, `https://hq.bagusdeva.com/work` (repo `Bagusdevaa/hq`). This repo is kept read-only for reference.
+
 A personal command center for managing work across multiple companies and projects.
 It exists to answer one question: **"What should I work on right now?"**
 
