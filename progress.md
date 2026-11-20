@@ -2,8 +2,7 @@
 
 ## Current Milestone
 
-Deployment — hosted Supabase + Vercel. Repo side complete and merged; the app builds and serves on
-Vercel with the schema in place. What remains is dashboard-only configuration (see Next).
+Retired. Archived: Personal Work OS now lives in HQ's Work module, `https://hq.bagusdeva.com/work` (repo `Bagusdevaa/hq`). This repo is kept read-only for reference.
 
 Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2026-09-10)
 
@@ -56,60 +55,13 @@ Previous: Post-MVP (merged into `main` 2026-09-11), MVP — Foundation (merged 2
 
 ## In Progress
 
-Nothing in the repo. Deployment state as of 2026-09-11:
-
-- Vercel project `work-os` is linked to the GitHub repo; production builds from `main` succeed and
-  `https://work-os-two-kappa.vercel.app` serves the app. Builds before the adapter swap all failed.
-- All three environment variables are correct, proven end to end on 2026-09-11: a magic link issued
-  from `https://work.bagusdeva.com` was exchanged for a session at `/auth/callback`, and the
-  resulting request wrote the first `public.users` row through Drizzle. `DATABASE_URL` therefore
-  reaches the hosted database and the app can query it.
-- Auth redirect configuration is correct: Supabase's logs show the callback origin
-  (`https://work.bagusdeva.com/auth/callback?next=%2F`) rather than the default Site URL, which is
-  what a rejected redirect falls back to.
-- Supabase's built-in email sender does deliver (the signup confirmation and the magic link both
-  arrived at a Gmail address), so custom SMTP is a robustness step rather than a blocker — it stays
-  rate-limited to a handful of messages per hour.
-- The custom domain `https://work.bagusdeva.com` serves the app over HTTPS.
-- Serverless functions are pinned to `sin1` to sit beside the Supabase project in `ap-southeast-1`.
-  They first deployed to Vercel's default `iad1`, which put a Pacific round-trip on every query and
-  made navigation take one to two seconds; the database itself was never the problem (no Postgres
-  errors, only INFO-level advisories).
-- The schema was applied to the hosted project through the Supabase MCP, then verified against the
-  local database: column, constraint and index fingerprints all match (123 columns, identical MD5s).
-  Drizzle's journal row was written with the same sha256 the migrator computes, so a later
-  `bun run db:migrate` skips it rather than re-applying.
-- All 12 public tables have RLS enabled (Supabase's `rls_auto_enable` event trigger does this) with
-  no policies, which is what this app wants: PostgREST and the anon key are blocked entirely, while
-  the app reaches the data through Drizzle as the table owner.
-- CSRF protection is active on the deployment (a form POST without a matching Origin is refused).
-
-Post-MVP verified: `bun run check`, `bun run lint`, `bun test` (174 tests) and
-`bun run build` all pass, and every new flow was exercised against the running local stack —
-password reset end to end through Mailpit (request → emailed PKCE link → `/reset-password` → sign in
-with the new password), magic-link sign-in, task reordering by drag and by keyboard, archive and
-restore, and the calendar Month/Week toggle. Nine pages checked in Chrome at 1440, 1280, 1024, 768
-and 390 px: no horizontal overflow, no console or page errors.
-
-Two defects surfaced only in that live pass and are fixed: magic link reported a distinct error for
-unknown addresses (account enumeration), and a dropped task submitted an empty id because the form
-was submitted before Svelte flushed the bound state.
+Nothing — retired; see HQ (`https://hq.bagusdeva.com/work`).
 
 ---
 
 ## Next
 
-1. **Close public signups (runbook step 12).** The app is live on a public domain with
-   registration open; until this is off, anyone who finds the URL can create an account. This is
-   the only remaining item that matters for privacy.
-2. Walk the rest of the functional checklist (runbook step 11) on the deployed app: create a
-   company, project and task, reorder tasks by drag and by keyboard, archive and restore a project,
-   switch the calendar to Week, and check it on a phone. Only auth and the users table have been
-   exercised in production so far.
-3. Set the minimum password length to 8 in the Supabase dashboard so it matches the Zod rule
-   (runbook step 7), and add custom SMTP (step 8) before depending on reset or magic-link email.
-4. Later candidates: richer calendar interactions, saved views, AI features per AGENTS.md §20 once
-   the deterministic workflows have proven themselves in daily use.
+Nothing — retired; further work happens in HQ (repo `Bagusdevaa/hq`).
 
 ---
 
